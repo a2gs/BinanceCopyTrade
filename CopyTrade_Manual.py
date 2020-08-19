@@ -8,6 +8,8 @@ import socket
 import envelop_sendRecv
 import configparser
 
+import BinanceCTProto
+
 if len(argv) != 2:
 	print(f"Usage:\n\t{argv[0]} CFG_FILE.cfg")
 	exit(1)
