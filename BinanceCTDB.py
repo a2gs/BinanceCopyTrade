@@ -10,7 +10,7 @@ CT_DB_TYPE_SQLITE     = "sqlite"
 CT_DB_TYPE_POSTGRESQL = "postgresql"
 CT_DB_TYPE_RAM        = "ram"
 
-class CT_INTERFACE(metaclass=abc.ABCMeta):
+class CT_DB_INTERFACE(metaclass=abc.ABCMeta):
 	@abc.abstractmethod
 	def connect(self):
 		pass
@@ -24,7 +24,7 @@ class CT_INTERFACE(metaclass=abc.ABCMeta):
 		pass
 
 
-class CT_DB_SQLITE(CT_INTERFACE):
+class CT_DB_SQLITE(CT_DB_INTERFACE):
 	fileName = ""
 
 	def __init__(self, sqliteFile = ""):
@@ -39,7 +39,7 @@ class CT_DB_SQLITE(CT_INTERFACE):
 	def quit(self):
 		print("quit sqlite")
 
-class CT_DB_POSTGRESQL(CT_INTERFACE):
+class CT_DB_POSTGRESQL(CT_DB_INTERFACE):
 	user   = ""
 	passwd = ""
 	schema = ""
@@ -58,7 +58,7 @@ class CT_DB_POSTGRESQL(CT_INTERFACE):
 	def quit(self):
 		pass
 
-class CT_DB_RAM(CT_INTERFACE):
+class CT_DB_RAM(CT_DB_INTERFACE):
 	def connect(self):
 		pass
 
