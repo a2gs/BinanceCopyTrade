@@ -85,7 +85,23 @@ print(f"Free BTC account balance: [{balance['free']}]", file=stderr)
 # -----------------------------------------
 
 while True:
-	msg = sub_socket.recv_string(encoding='utf-8')
+	try:
+		msg = sub_socket.recv_string(encoding='utf-8')
+	except OSError as e:
+		print(f"OS Exception: {e.errno} {e.strerror}")
+		exit(1)
+	except KeyboardInterrupt:
+		print("KeyboardInterrupt (Ctrl-C)")
+		exit(1)
+	except Exception as e:
+		print("0Mq Exception: [{e}]")
+		exit(1)
+	except BaseException as e:
+		print(f"BaseException {str(e)}")
+		exit(1)
+	except:
+		print("Unknow exception")
+		exit(1)
 
 	dt = msg[:len(sub_topic)]
 	ds = msg[len(sub_topic)+1:]
