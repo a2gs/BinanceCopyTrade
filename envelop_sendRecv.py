@@ -35,9 +35,15 @@ class connection:
 		self.clientsock, address = self.servsock.accept()
 		return address
 
-	def connectToServer(self, address, port, family, socktype):
+	def connectToServer(self, address, port, family, socktype)->[bool, str]:
 		self.clientsock = socket.socket(family, socktype)
-		self.clientsock.connect((address, port))
+
+		try:
+			self.clientsock.connect((address, port))
+		except ConnectionRefusedError as e:
+			return([False, e])
+
+		return([True, "Ok"])
 
 	def sendMsg(self, msg, szToSend):
 		msgSz = struct.pack('!I', szToSend)

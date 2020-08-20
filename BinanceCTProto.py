@@ -4,6 +4,7 @@
 # Andre Augusto Giannotti Scota (https://sites.google.com/view/a2gs/)
 
 from BinanceCTUtil import getTimeStamp
+import json
 
 CT_CMD_COPYTRADE = "COPYTRADE"
 CT_CMD_CANCELORDER = "CANCEL ORDER"
@@ -11,17 +12,6 @@ CT_CMD_GETOPENORDERS = "OPENORDERS"
 
 CT_TYPE_RESPONSE = "RESP"
 CT_TYPE_REQUEST  = "REQ"
-
-'''
-{
-	cmd : "cmd_type",
-	fromto { from : "from name", to: "to_name" },
-	timestamp : "YYYY-MM-DD hh:mm:ss.miiiii",
-	type : "RESPONSE",
-	response_timestamp : "YYYY-MM-DD hh:mm:ss.miiiii",
-	data { symbol : "BTCUSDT", side : "BUY", type : "LIMIT", price : "0.000" }
-}
-'''
 
 class CT_PROTO:
 	cmd = ""
@@ -40,7 +30,40 @@ class CT_PROTO:
 		self.data = {}
 
 	def formatToNet(self)->str:
-		pass
+
+		msg = {
+			'cmd' : self.cmd,
+			'fromto' : {
+				'from' : self.fromto['from'],
+				'to'   : self.fromto['to']
+			},
+			'timestamp' : self.timestamp,
+			'type'      : self.cmdtype,
+			'response_timestamp' : self.response_timestamp,
+		}
+
+		if self.cmd == CT_CMD_COPYTRADE:
+			msg['data'] = {
+				'symbol'  : self.data.symbol,
+				'side'    : self.data.side,
+				'ordid'   : self.data.ordid,
+				'ordtype' : self.data.ordtype,
+				'price'   : self.data.price
+			}
+		elif self.cmd == CT_CMD_CANCELORDER:
+			msg['data'] = {
+				'server_order_id' : self.data.server_order_id
+			}
+		elif self.cmd == CT_CMD_GETOPENORDERS:
+			'''
+			msg['data'] = {
+				'openorders' : {}
+			}
+		
+			[msg['data']['openorders'].append(i) for i in self.data.open_orders]
+			'''
+
+		return json.dumps(msg)
 
 	def loadFromNet(self):
 		pass
@@ -53,22 +76,24 @@ class CT_PROTO_CANCELORDER_DATA:
 
 class CT_PROTO_GETOPENORDERS:
 	class CT_PROTO_GETOPENORDERS_INFO:
-		symbol = ""
-		ordid = ""
-		side = ""
-		ordtype = ""
-		price = ""
-		server_order_id_ref = ""
+		element = {
+			'symbol' : "",
+			'ordid' : "",
+			'side' : "",
+			'ordtype' : "",
+			'price' : "",
+			'server_order_id_ref' : ""
+		}
 
 		def __init__(self):
-			self.symbol = ""
-			self.ordid = ""
-			self.side = ""
-			self.ordtype = ""
-			self.price = ""
-			self.server_order_id_ref = ""
+			self.element['symbol'] = ""
+			self.element['ordid'] = ""
+			self.element['side'] = ""
+			self.element['ordtype'] = ""
+			self.element['price'] = ""
+			self.element['server_order_id_ref'] = ""
 
-	open_orders = []
+	open_orders = {}
 
 	def __init__(self):
 		self.open_orders = []
