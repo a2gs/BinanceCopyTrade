@@ -68,7 +68,10 @@ con.serverBindListen(int(signalSrvDataClient_port), int(signalSrvDataClient_maxc
 while True:
 	print("Wating connection...", file=stderr)
 
-	client = con.serverAccept()
+	ret, msgret, client = con.serverAccept()
+	if ret == False:
+		print(f'Connection error: [{msgret}].', file=stderr)
+		exit(1)
 
 	msgRecv = con.recvMsg()
 

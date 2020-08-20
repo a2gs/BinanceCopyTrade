@@ -6,7 +6,6 @@
 from BinanceCTUtil import getTimeStamp
 from sys import exit, argv, stderr
 from os import getpid
-from time import sleep
 import BinanceCTProto
 import envelop_sendRecv
 import socket
@@ -84,7 +83,10 @@ while True:
 
 	print('Waiting connections..', file=stderr)
 
-	client = conn.serverAccept()
+	ret, msgret, client = conn.serverAccept()
+	if ret == False:
+		print(f'Connection error: [{msgret}].', file=stderr)
+		exit(1)
 
 	msgRecv = conn.recvMsg()
 	conn.sendMsg(clientMsgRet, len(clientMsgRet))
@@ -97,6 +99,10 @@ while True:
 
 	if recv.cmd == BinanceCTProto.CT_CMD_COPYTRADE:
 		print("Received a COPYTRAPE cmd")
+	elif recv.cmd == BinanceCTProto.CT_CMD_PING:
+		msgpingret = "GOT PING"
+		conn.sendMsg(msgpingret, len(msgpingret))
+		print("PING!")
 	elif recv.cmd == BinanceCTProto.CT_CMD_CANCELORDER:
 		print("Received a CANCELORDER cmd")
 	elif recv.cmd == BinanceCTProto.CT_CMD_GETOPENORDERS:
