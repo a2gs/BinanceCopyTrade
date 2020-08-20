@@ -14,20 +14,20 @@ CT_TYPE_RESPONSE = "RESP"
 CT_TYPE_REQUEST  = "REQ"
 
 class CT_PROTO:
-	cmd = ""
-	fromto = { 'from' : "", 'to': "" }
-	timestamp = ""
-	cmdtype = ""
-	response_timestamp = ""
-	data = {}
+	cmd            = ""
+	fromto         = { 'from' : "", 'to': "" }
+	timestamp      = ""
+	cmdtype        = ""
+	resp_timestamp = ""
+	data           = object()
 
 	def __init__(self):
-		self.cmd = ""
-		self.fromto = { 'from' : "", 'to': "" }
-		self.timestamp = ""
-		self.cmdtype = ""
-		self.response_timestamp = ""
-		self.data = {}
+		self.cmd            = ""
+		self.fromto         = {'from' : "", 'to' : ""}
+		self.timestamp      = ""
+		self.cmdtype        = ""
+		self.resp_timestamp = ""
+		self.data           = object()
 
 	def formatToNet(self)->str:
 
@@ -39,75 +39,82 @@ class CT_PROTO:
 			},
 			'timestamp' : self.timestamp,
 			'type'      : self.cmdtype,
-			'response_timestamp' : self.response_timestamp,
+			'resp_timestamp' : self.resp_timestamp,
 		}
 
 		if self.cmd == CT_CMD_COPYTRADE:
-			msg['data'] = {
-				'symbol'  : self.data.symbol,
-				'side'    : self.data.side,
-				'ordid'   : self.data.ordid,
-				'ordtype' : self.data.ordtype,
-				'price'   : self.data.price
-			}
+			msg['data'] = {}
+
+			msg['data']['symbol']  = self.data.symbol
+			msg['data']['side']    = self.data.side
+			msg['data']['ordid']   = self.data.ordid
+			msg['data']['ordtype'] = self.data.ordtype
+			msg['data']['price']   = self.data.price
+
 		elif self.cmd == CT_CMD_CANCELORDER:
 			msg['data'] = {
 				'server_order_id' : self.data.server_order_id
 			}
 		elif self.cmd == CT_CMD_GETOPENORDERS:
-			'''
 			msg['data'] = {
-				'openorders' : {}
+				'openorders' : []
 			}
 		
-			[msg['data']['openorders'].append(i) for i in self.data.open_orders]
-			'''
+			[msg['data']['openorders'].append(i.element) for i in self.data.open_orders]
 
 		return json.dumps(msg)
 
-	def loadFromNet(self):
-		pass
+	def loadFromNet(self, msgRecv):
+		jsonDump = json.loads(msgRecv)
+
+		self.cmd            = jsonDump['cmd']
+		self.fromto['from'] = jsonDump['fromto']['from']
+		self.fromto['to']   = jsonDump['fromto']['to']
+		self.timestamp      = jsonDump['timestamp']
+		self.cmdtype        = jsonDump['type']
+		self.resp_timestamp = jsonDump['resp_timestamp']
+		self.data           = jsonDump['data']
 
 class CT_PROTO_CANCELORDER_DATA:
 	server_order_id = ""
 
-	def __init__(self):
-		self.server_order_id = ""
+	def __init__(self, _server_order_id = ""):
+		self.server_order_id = _server_order_id
+
+class CT_PROTO_GETOPENORDERS_INFO:
+	element = {
+		'symbol'              : "",
+		'ordid'               : "",
+		'side'                : "",
+		'ordtype'             : "",
+		'price'               : "",
+		'server_order_id_ref' : ""
+	}
+
+	def __init__(self, _symbol = "", _ordid = "", _side = "", _ordtype = "", _price = "", _server_order_id_ref = ""):
+		self.element['symbol']              = _symbol
+		self.element['ordid']               = _ordid
+		self.element['side']                = _side
+		self.element['ordtype']             = _ordtype
+		self.element['price']               = _price
+		self.element['server_order_id_ref'] = _server_order_id_ref
 
 class CT_PROTO_GETOPENORDERS:
-	class CT_PROTO_GETOPENORDERS_INFO:
-		element = {
-			'symbol' : "",
-			'ordid' : "",
-			'side' : "",
-			'ordtype' : "",
-			'price' : "",
-			'server_order_id_ref' : ""
-		}
-
-		def __init__(self):
-			self.element['symbol'] = ""
-			self.element['ordid'] = ""
-			self.element['side'] = ""
-			self.element['ordtype'] = ""
-			self.element['price'] = ""
-			self.element['server_order_id_ref'] = ""
-
-	open_orders = {}
+	open_orders = []
 
 	def __init__(self):
 		self.open_orders = []
 
 class CT_PROTO_COPYTRADE_DATA:
-	symbol = ""
-	side = ""
-	ordid = ""
+	symbol  = ""
+	side    = ""
+	ordid   = ""
 	ordtype = ""
-	price = ""
+	price   = ""
 
-	def __init__(self):
-		self.symbol = ""
-		self.ordid = ""
-		self.side = ""
-		self.ordtype = ""
-		self.price = ""
+	def __init__(self, _symbol = "", _ordid = "", _side = "", _ordtype = "", _price = ""):
+		self.symbol  = _symbol
+		self.ordid   = _ordid
+		self.side    = _side
+		self.ordtype = _ordtype
+		self.price   = _price

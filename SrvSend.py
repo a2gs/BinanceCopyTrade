@@ -7,11 +7,11 @@ from BinanceCTUtil import getTimeStamp
 from sys import exit, argv, stderr
 from os import getpid
 from time import sleep
+import BinanceCTProto
 import envelop_sendRecv
 import socket
 import zmq
 import configparser
-import json
 
 if len(argv) != 2:
 	print(f"Usage:\n\t{argv[0]} CFG_FILE.cfg")
@@ -91,8 +91,20 @@ while True:
 
 	print(f'Connection from [{client}] Msg [{msgRecv}]', file=stderr)
 
-	d = json.loads(msgRecv)
-	ds = f"{pub_topic} {json.dumps(d)}"
+	recv = BinanceCTProto.CT_PROTO()
+
+	recv.loadFromNet(msgRecv)
+
+	if recv.cmd == BinanceCTProto.CT_CMD_COPYTRADE:
+		print("Received a COPYTRAPE cmd")
+	elif recv.cmd == BinanceCTProto.CT_CMD_CANCELORDER:
+		print("Received a CANCELORDER cmd")
+	elif recv.cmd == BinanceCTProto.CT_CMD_GETOPENORDERS:
+		print("Received a GETOPENORDERS cmd")
+	else:
+		print(f"Unknow protocol: [{recv.formatToNet()}")
+
+	ds = f"{pub_topic} {recv.formatToNet()}"
 
 	print(f"SENDING: [{ds}]", file=stderr)
 
