@@ -24,6 +24,7 @@ cfgFile.read(argv[1])
 print('CFG:', file=stderr)
 
 srvDataClient_name = cfgFile['GENERAL']['name']
+srvDataClient_log = cfgFile['GENERAL']['log']
 
 signalSrvDataClient_port = cfgFile['SIGNAL_SOURCE']['port']
 signalSrvDataClient_address = cfgFile['SIGNAL_SOURCE']['address']

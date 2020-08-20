@@ -16,7 +16,13 @@
 
 source venv/bin/activate
 
-rm -rf SrvDataClient.log SrvSend.log
+rm -rf log/SrvDataClient.log log/SrvSend.log
 
-./SrvDataClient.py SrvDataClient.cfg >SrvDataClient.log  2>&1 &
-./SrvSend.py SrvSend.cfg >SrvSend.log 2>&1 &
+#./SrvDataClient.py SrvDataClient.cfg &>SrvDataClient.log &
+#./SrvSend.py SrvSend.cfg &>SrvSend.log &
+
+#nohup ./SrvSend.py SrvSend.cfg | tee SrvSend.log &
+#nohup ./SrvDataClient.py SrvDataClient.cfg | tee SrvDataClient.log &
+
+./SrvDataClient.py ./cfg/SrvDataClient.cfg >log/SrvDataClient.log 2>&1 &
+./SrvSend.py ./cfg/SrvSend.cfg >log/SrvSend.log 2>&1 &

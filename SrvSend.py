@@ -26,6 +26,7 @@ cfgFile.read(argv[1])
 print('CFG:', file=stderr)
 
 pub_name = cfgFile['GENERAL']['name']
+pub_log = cfgFile['GENERAL']['log']
 
 pub_address = cfgFile['PUBLISHER']['address']
 pub_topic   = cfgFile['PUBLISHER']['topic']

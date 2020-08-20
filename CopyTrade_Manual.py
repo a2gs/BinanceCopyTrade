@@ -21,6 +21,7 @@ cfgFile = configparser.ConfigParser()
 cfgFile.read(argv[1])
 
 ctm_name = cfgFile['GENERAL']['name']
+ctm_log = cfgFile['GENERAL']['log']
 
 ctm_signalSource_port = cfgFile['SIGNAL_SOURCE']['port']
 ctm_signalSource_address = cfgFile['SIGNAL_SOURCE']['address']

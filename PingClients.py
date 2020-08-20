@@ -21,6 +21,7 @@ cfgFile = configparser.ConfigParser()
 cfgFile.read(argv[1])
 
 ping_name = cfgFile['GENERAL']['name']
+ping_log = cfgFile['GENERAL']['log']
 
 ping_signalSource_port = cfgFile['SIGNAL_SOURCE']['port']
 ping_signalSource_address = cfgFile['SIGNAL_SOURCE']['address']
@@ -58,7 +59,7 @@ while continuePing == True:
 
 	if ping_qtdNum > 0:
 		qtdSent += 1
-		print(f'Sent: [{msg}]\nReceived: [{msgRecv}]\nInterval [{ping_interval}] [{qtdSent} of {ping_qtdNum}]', file=stderr)
+		print(f'Sent: [{msg}]\nReceived: [{msgRecv}]\nInterval [{ping_interval}]s [{qtdSent} of {ping_qtdNum}]', file=stderr)
 		if qtdSent >= ping_qtdNum:
 			continuePing = False
 	else:

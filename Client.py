@@ -25,6 +25,7 @@ cfgFile = configparser.ConfigParser()
 cfgFile.read(argv[1])
 
 sub_name = cfgFile['GENERAL']['name']
+sub_log = cfgFile['GENERAL']['log']
 
 sub_address = cfgFile['SUB_SERVER_SEND']['address']
 sub_topic   = cfgFile['SUB_SERVER_SEND']['topic']
