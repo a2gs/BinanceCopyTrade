@@ -15,7 +15,7 @@ CT_TYPE_REQUEST  = "REQ"
 
 class CT_PROTO:
 	cmd            = ""
-	fromto         = { 'from' : "", 'to': "" }
+	fromto         = {'from' : "", 'to': ""}
 	timestamp      = ""
 	cmdtype        = ""
 	resp_timestamp = ""
@@ -73,7 +73,16 @@ class CT_PROTO:
 		self.timestamp      = jsonDump['timestamp']
 		self.cmdtype        = jsonDump['type']
 		self.resp_timestamp = jsonDump['resp_timestamp']
-		self.data           = jsonDump['data']
+
+#jsonDump['data'] TODO
+		if self.cmd == CT_CMD_COPYTRADE:
+			self.data = CT_PROTO_COPYTRADE_DATA()
+
+		elif self.cmd == CT_CMD_CANCELORDER:
+			self.data = CT_PROTO_CANCELORDER_DATA()
+
+		elif self.cmd == CT_CMD_GETOPENORDERS:
+			self.data = CT_PROTO_GETOPENORDERS()
 
 class CT_PROTO_CANCELORDER_DATA:
 	server_order_id = ""
