@@ -17,16 +17,23 @@ if len(argv) != 2:
 
 # --- CFG ---------------------------------
 
-cfgFile = configparser.ConfigParser()
-cfgFile.read(argv[1])
+try:
+	cfgFile = configparser.ConfigParser()
+	cfgFile.read(argv[1])
 
-ping_name = cfgFile['GENERAL']['name']
-ping_log  = cfgFile['GENERAL']['log']
+	ping_name = cfgFile['GENERAL']['name']
+	ping_log  = cfgFile['GENERAL']['log']
 
-ping_signalSource_port    = cfgFile['SIGNAL_SOURCE']['port']
-ping_signalSource_address = cfgFile['SIGNAL_SOURCE']['address']
-ping_interval             = cfgFile['SIGNAL_SOURCE']['interval']
-ping_qtd                  = cfgFile['SIGNAL_SOURCE']['qtd']
+	ping_signalSource_port    = cfgFile['SIGNAL_SOURCE']['port']
+	ping_signalSource_address = cfgFile['SIGNAL_SOURCE']['address']
+	ping_interval             = cfgFile['SIGNAL_SOURCE']['interval']
+	ping_qtd                  = cfgFile['SIGNAL_SOURCE']['qtd']
+
+except Exception as e:
+	print(f"Invalid cfg file! [{e}]")
+	exit(1)
+
+del cfgFile
 
 # --- SOCKET ------------------------------
 

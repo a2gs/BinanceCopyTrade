@@ -20,8 +20,6 @@ function runSrv
 	then
 		echo -e "${FUNCNAME[0]} Usage:\n\t${FUNCNAME[0]} [WORK_PATH] [EXEC] [CFG_FILE]"
 		return 1
-	else
-		echo "OK!"
 	fi
 
 	source "$1"/venv/bin/activate
@@ -39,7 +37,7 @@ function runSrv
 		procRet=$?
 		if [ "$procRet" -ne 0 ]
 		then
-			echo "[$procToexec] with PID [$procPid] STOPPED returning [$procRet]!"
+			echo "[$procToExec] with PID [$procPid] STOPPED returning [$procRet]!"
 			break
 		fi
 	done

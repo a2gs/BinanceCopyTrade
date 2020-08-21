@@ -17,14 +17,21 @@ if len(argv) != 2:
 
 # --- CFG ---------------------------------
 
-cfgFile = configparser.ConfigParser()
-cfgFile.read(argv[1])
+try:
+	cfgFile = configparser.ConfigParser()
+	cfgFile.read(argv[1])
 
-ctm_name = cfgFile['GENERAL']['name']
-ctm_log  = cfgFile['GENERAL']['log']
+	ctm_name = cfgFile['GENERAL']['name']
+	ctm_log  = cfgFile['GENERAL']['log']
 
-ctm_signalSource_port    = cfgFile['SIGNAL_SOURCE']['port']
-ctm_signalSource_address = cfgFile['SIGNAL_SOURCE']['address']
+	ctm_signalSource_port    = cfgFile['SIGNAL_SOURCE']['port']
+	ctm_signalSource_address = cfgFile['SIGNAL_SOURCE']['address']
+
+except Exception as e:
+	print(f"Invalid cfg file! [{e}]")
+	exit(1)
+
+del cfgFile
 
 # --- SOCKET - SAMPLE 1 -------------------
 print("--- SOCKET - SAMPLE 1 -------------------")

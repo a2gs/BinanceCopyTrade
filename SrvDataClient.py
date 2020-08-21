@@ -17,29 +17,34 @@ if len(argv) != 2:
 
 # --- CFG ---------------------------------
 
-cfgFile = configparser.ConfigParser()
-cfgFile.read(argv[1])
+try:
+	cfgFile = configparser.ConfigParser()
+	cfgFile.read(argv[1])
 
-srvDataClient_name = cfgFile['GENERAL']['name']
-srvDataClient_log  = cfgFile['GENERAL']['log']
+	srvDataClient_name = cfgFile['GENERAL']['name']
+	srvDataClient_log  = cfgFile['GENERAL']['log']
 
-signalSrvDataClient_port    = cfgFile['SIGNAL_SOURCE']['port']
-signalSrvDataClient_address = cfgFile['SIGNAL_SOURCE']['address']
-signalSrvDataClient_maxconn = cfgFile['SIGNAL_SOURCE']['maxconnections']
+	signalSrvDataClient_port    = cfgFile['SIGNAL_SOURCE']['port']
+	signalSrvDataClient_address = cfgFile['SIGNAL_SOURCE']['address']
+	signalSrvDataClient_maxconn = cfgFile['SIGNAL_SOURCE']['maxconnections']
 
-db_engine = cfgFile['DB']['engine']
+	db_engine = cfgFile['DB']['engine']
 
-if db_engine == 'sqlite':
-	db_file = cfgFile['DB']['file']
+	if db_engine == 'sqlite':
+		db_file = cfgFile['DB']['file']
 
-elif db_engine == 'postgresql':
-	db_user = cfgFile['DB']['user']
-	db_pass = cfgFile['DB']['pass']
-	db_port = cfgFile['DB']['port']
-	db_schema = cfgFile['DB']['schema']
+	elif db_engine == 'postgresql':
+		db_user = cfgFile['DB']['user']
+		db_pass = cfgFile['DB']['pass']
+		db_port = cfgFile['DB']['port']
+		db_schema = cfgFile['DB']['schema']
 
-else:
-	print("Undefined DB engine config!", file=stderr)
+	else:
+		print("Undefined DB engine config!", file=stderr)
+		exit(1)
+
+except Exception as e:
+	print(f"Invalid cfg file! [{e}]")
 	exit(1)
 
 del cfgFile
