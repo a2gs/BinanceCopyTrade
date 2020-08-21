@@ -14,9 +14,41 @@
 # Activate tracing:
 #set -x
 
-source venv/bin/activate
+function runSrv
+{
+	if [ "$#" -ne 3 ]
+	then
+		echo -e "${FUNCNAME[0]} Usage:\n\t${FUNCNAME[0]} [WORK_PATH] [EXEC] [CFG_FILE]"
+		return 1
+	else
+		echo "OK!"
+	fi
 
-rm -rf log/SrvDataClient.log log/SrvSend.log
+	source "$1"/venv/bin/activate
 
-./SrvDataClient.py ./cfg/SrvDataClient.cfg &
-./SrvSend.py ./cfg/SrvSend.cfg &
+	procToExec="$1/$2"
+	procCfg="$1/$3"
+
+	while true
+	do
+		echo "Starting [$1 $2]"
+		"$procToExec" "$procCfg" &
+		procPid=$!
+		echo "[$procToExec] PID: [$procPid]. Waiting..."
+		wait "$procPid"
+		procRet=$?
+		if [ "$procRet" -ne 0 ]
+		then
+			echo "[$procToexec] with PID [$procPid] STOPPED returning [$procRet]!"
+			break
+		fi
+	done
+}
+
+#WORKDIR=/home/a2gs/Desktop/Projects/BinanceCopyTrade
+WORKDIR=.
+
+runSrv "$WORKDIR" SrvSend.py cfg/SrvSend.cfg &
+runSrv "$WORKDIR" SrvDataClient.py cfg/SrvDataClient.cfg &
+
+echo 'SrvSend and SrvDataClient watchdog running.'
