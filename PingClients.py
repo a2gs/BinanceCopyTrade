@@ -21,12 +21,12 @@ cfgFile = configparser.ConfigParser()
 cfgFile.read(argv[1])
 
 ping_name = cfgFile['GENERAL']['name']
-ping_log = cfgFile['GENERAL']['log']
+ping_log  = cfgFile['GENERAL']['log']
 
-ping_signalSource_port = cfgFile['SIGNAL_SOURCE']['port']
+ping_signalSource_port    = cfgFile['SIGNAL_SOURCE']['port']
 ping_signalSource_address = cfgFile['SIGNAL_SOURCE']['address']
-ping_interval = cfgFile['SIGNAL_SOURCE']['interval']
-ping_qtd = cfgFile['SIGNAL_SOURCE']['qtd']
+ping_interval             = cfgFile['SIGNAL_SOURCE']['interval']
+ping_qtd                  = cfgFile['SIGNAL_SOURCE']['qtd']
 
 # --- SOCKET ------------------------------
 
@@ -53,7 +53,10 @@ while continuePing == True:
 	msg = ping_sample1.formatToNet()
 
 	con.sendMsg(msg, len(msg))
-	msgRecv = con.recvMsg()
+	ret, retmsg, msgRecv = con.recvMsg()
+	if ret == False:
+		print(f"Error: [{retmsg}]")
+		exit(1)
 
 	sleep(int(ping_interval))
 

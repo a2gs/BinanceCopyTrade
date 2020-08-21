@@ -25,7 +25,7 @@ cfgFile = configparser.ConfigParser()
 cfgFile.read(argv[1])
 
 sub_name = cfgFile['GENERAL']['name']
-sub_log = cfgFile['GENERAL']['log']
+sub_log  = cfgFile['GENERAL']['log']
 
 sub_address = cfgFile['SUB_SERVER_SEND']['address']
 sub_topic   = cfgFile['SUB_SERVER_SEND']['topic']
@@ -36,6 +36,26 @@ srv_dataclient_port    = cfgFile['SERVER_DATACLIENT']['port']
 binance_api     = cfgFile['BINANCE_API']['APIKEY']
 binance_sek     = cfgFile['BINANCE_API']['SEKKEY']
 binance_recvwin = cfgFile['BINANCE_API']['RECVWINDOW']
+
+db_engine = cfgFile['DB']['engine']
+print(f"DB Engine..............: [{db_engine}]", file=stderr)
+
+if db_engine == 'sqlite':
+	db_file = cfgFile['DB']['file']
+	print(f"DB File................: [{db_file}]", file=stderr)
+
+elif db_engine == 'postgresql':
+	db_user = cfgFile['DB']['user']
+	db_pass = cfgFile['DB']['pass']
+	db_port = cfgFile['DB']['port']
+	db_schema = cfgFile['DB']['schema']
+	print(f"DB User................: [{db_user}]", file=stderr)
+	print(f"DB Port................: [{db_port}]", file=stderr)
+	print(f"DB Schema..............: [{db_schema}]", file=stderr)
+
+else:
+	print("Undefined DB engine config!", file=stderr)
+	exit(1)
 
 del cfgFile
 
@@ -122,7 +142,10 @@ while True:
 
 	con.sendMsg(msg, len(msg))
 
-	msgRecv = con.recvMsg()
+	ret, retmsg, msgRecv = con.recvMsg()
+	if ret == False:
+		print(f"Error: [{retmsg}]")
+		exit(1)
 
 	print(f'Sent: [{msg}] | Received: [{msgRecv}]')
 

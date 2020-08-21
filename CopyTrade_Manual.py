@@ -21,9 +21,9 @@ cfgFile = configparser.ConfigParser()
 cfgFile.read(argv[1])
 
 ctm_name = cfgFile['GENERAL']['name']
-ctm_log = cfgFile['GENERAL']['log']
+ctm_log  = cfgFile['GENERAL']['log']
 
-ctm_signalSource_port = cfgFile['SIGNAL_SOURCE']['port']
+ctm_signalSource_port    = cfgFile['SIGNAL_SOURCE']['port']
 ctm_signalSource_address = cfgFile['SIGNAL_SOURCE']['address']
 
 # --- SOCKET - SAMPLE 1 -------------------
@@ -50,7 +50,10 @@ copytrade_sample1.data = BinanceCTProto.CT_PROTO_COPYTRADE_DATA(_symbol = "BTCUS
 msg = copytrade_sample1.formatToNet()
 
 con.sendMsg(msg, len(msg))
-msgRecv = con.recvMsg()
+ret, retmsg, msgRecv = con.recvMsg()
+if ret == False:
+	print(f"Error: [{retmsg}]")
+	exit(1)
 con.endClient()
 
 print(f'Sent: [{msg}]\nReceived: [{msgRecv}]', file=stderr)

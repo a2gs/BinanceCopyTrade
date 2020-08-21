@@ -148,7 +148,7 @@ class connection:
 
 		return([True, "Ok"])
 
-	def recvMsg(self) -> str:
+	def recvMsg(self)->[bool, str, str]:
 		HEADERSIZE = 4 # struct.pack('!I', szToSend)
 
 		msgSz   = 0
@@ -163,7 +163,7 @@ class connection:
 			chunk = self.clientsock.recv(HEADERSIZE - recvBufSz)
 
 			if chunk == b'':
-				raise RuntimeError("socket connection broken")
+				return([False, "Socket connection broken", ""])
 
 			recvBuf = recvBuf + chunk
 			recvBufSz = len(recvBuf)
@@ -179,9 +179,9 @@ class connection:
 			chunk = self.clientsock.recv(msgSz - recvBufSz)
 
 			if chunk == b'':
-				raise RuntimeError("socket connection broken")
+				return([False, "Socket connection broken", ""])
 
 			recvBuf = recvBuf + chunk
 			recvBufSz = len(recvBuf)
 
-		return recvBuf.decode("utf-8")
+		return([True, "Ok", recvBuf.decode("utf-8")])
