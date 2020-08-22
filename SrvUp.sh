@@ -25,20 +25,26 @@ function runSrv
 	source "$1"/venv/bin/activate
 
 	procToExec="$1/$2"
-	procCfg="$1/$3"
+	procParams="$3"
 
 	while true
 	do
-		echo "Starting [$1 $2]"
-		"$procToExec" "$procCfg" &
+		echo "Starting [$procToExec $procParams]. Watchdog PID: [$$]"
+
+		"$procToExec" "$procParams" &
 		procPid=$!
-		echo "[$procToExec] PID: [$procPid]. Waiting..."
+		echo "$$: [$procToExec] PID: [$procPid]. Waiting..."
+
 		wait "$procPid"
 		procRet=$?
-		if [ "$procRet" -ne 0 ]
+
+		echo -n "$$: [$procToExec] with PID [$procPid] returning [$procRet]: "
+		if [ "$procRet" -eq 0 ]
 		then
-			echo "[$procToExec] with PID [$procPid] STOPPED returning [$procRet]!"
+			echo 'Normal exit!'
 			break
+		else
+			echo 'RERUN!'
 		fi
 	done
 }
@@ -46,7 +52,7 @@ function runSrv
 #WORKDIR=/home/a2gs/Desktop/Projects/BinanceCopyTrade
 WORKDIR=.
 
-runSrv "$WORKDIR" SrvSend.py cfg/SrvSend.cfg &
-runSrv "$WORKDIR" SrvDataClient.py cfg/SrvDataClient.cfg &
+runSrv "$WORKDIR" 'SrvSend.py' "$WORKDIR/cfg/SrvSend.cfg" &
+runSrv "$WORKDIR" 'SrvDataClient.py' "$WORKDIR/cfg/SrvDataClient.cfg" &
 
-echo 'SrvSend and SrvDataClient watchdog running.'
+echo "SrvSend and SrvDataClient watchdog running."
