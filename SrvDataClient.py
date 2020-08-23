@@ -6,6 +6,8 @@
 from BinanceCTUtil import getTimeStamp
 from sys import argv, exit, stderr
 from os import getpid
+from signal import signal, SIGILL, SIGTRAP, SIGINT, SIGHUP, SIGTERM, SIGSEGV, SIGUSR1
+from BinanceCTDB import CT_DB_TYPE_SQLITE, CT_DB_TYPE_POSTGRESQL
 import socket
 import envelop_sendRecv
 import configparser
@@ -14,6 +16,24 @@ import logging
 if len(argv) != 2:
 	print(f"Usage:\n\t{argv[0]} CFG_FILE.cfg")
 	exit(1)
+
+def sigHandler(signum, frame):
+	if signum == SIGUSR1:
+		logging.info('Singal SIGUSR1 received! Normal shutdown returning [0] to shell.\n')
+		logging.shutdown()
+		exit(0)
+	else:
+		logging.info(f'Singal {signum} received! Return [1] to shell.\n')
+		logging.shutdown()
+		exit(1)
+
+signal(SIGILL , sigHandler)
+signal(SIGTRAP, sigHandler)
+signal(SIGINT , sigHandler)
+signal(SIGHUP , sigHandler)
+signal(SIGTERM, sigHandler)
+signal(SIGSEGV, sigHandler)
+signal(SIGUSR1, sigHandler)
 
 # --- CFG ---------------------------------
 
@@ -30,10 +50,10 @@ try:
 
 	db_engine = cfgFile['DB']['engine']
 
-	if db_engine == 'sqlite':
+	if db_engine == CT_DB_TYPE_SQLITE:
 		db_file = cfgFile['DB']['file']
 
-	elif db_engine == 'postgresql':
+	elif db_engine == CT_DB_TYPE_POSTGRESQL:
 		db_user = cfgFile['DB']['user']
 		db_pass = cfgFile['DB']['pass']
 		db_port = cfgFile['DB']['port']
@@ -74,10 +94,10 @@ logging.info(f"Signal Source Max Conns: [{signalSrvDataClient_maxconn }]")
 
 logging.info(f"DB Engine..............: [{db_engine}]")
 
-if db_engine == 'sqlite':
+if db_engine == CT_DB_TYPE_SQLITE:
 	logging.info(f"DB File................: [{db_file}]")
 
-elif db_engine == 'postgresql':
+elif db_engine == CT_DB_TYPE_POSTGRESQL:
 	logging.info(f"DB User................: [{db_user}]")
 	logging.info(f"DB Port................: [{db_port}]")
 	logging.info(f"DB Schema..............: [{db_schema}]")

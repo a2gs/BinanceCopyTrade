@@ -141,8 +141,10 @@ class CT_DB:
 		else:
 			self.DB = None
 
+'''
 aaa = CT_DB(_engine = CT_DB_TYPE_SQLITE, _sqliteDBFile = "test.sqlite")
 ret,msg = aaa.DB.connect()
 aaa.DB.createTablesIfNotExist()
 aaa.DB.commit()
 aaa.DB.quit()
+'''

@@ -22,13 +22,22 @@ class CT_PROTO:
 	resp_timestamp = ""
 	data           = object()
 
-	def __init__(self):
-		self.cmd            = ""
-		self.fromto         = {'from' : "", 'to' : ""}
-		self.timestamp      = ""
-		self.cmdtype        = ""
-		self.resp_timestamp = ""
-		self.data           = object()
+	def __init__(self, 
+	             _cmd            = "",
+	             _fromto_from    = "",
+	             _fromto_to      = "",
+	             _timestamp      = "",
+	             _cmdtype        = "",
+	             _resp_timestamp = "",
+	             _data = object()):
+
+		self.cmd            = _cmd
+		self.fromto['from'] = _fromto_from
+		self.fromto['to']   = _fromto_to
+		self.timestamp      = _timestamp
+		self.cmdtype        = _cmdtype
+		self.resp_timestamp = _resp_timestamp
+		self.data           = _data
 
 	def formatToNet(self)->str:
 
@@ -75,15 +84,22 @@ class CT_PROTO:
 		self.cmdtype        = jsonDump['type']
 		self.resp_timestamp = jsonDump['resp_timestamp']
 
-#jsonDump['data'] TODO
 		if self.cmd == CT_CMD_COPYTRADE:
 			self.data = CT_PROTO_COPYTRADE_DATA()
 
+			self.data.symbol  = jsonDump['data']['symbol']
+			self.data.side    = jsonDump['data']['side']
+			self.data.ordid   = jsonDump['data']['ordid']
+			self.data.ordtype = jsonDump['data']['ordtype']
+			self.data.price   = jsonDump['data']['price']
+
 		elif self.cmd == CT_CMD_CANCELORDER:
 			self.data = CT_PROTO_CANCELORDER_DATA()
+			# TODO: copy data set
 
 		elif self.cmd == CT_CMD_GETOPENORDERS:
 			self.data = CT_PROTO_GETOPENORDERS()
+			# TODO: copy data set
 
 class CT_PROTO_CANCELORDER_DATA:
 	server_order_id = ""

@@ -17,5 +17,5 @@
 pidSrvSend=`ps -ef | grep -v grep | grep SrvSend.py | awk '{print $2}'`
 pidSrvDataClient=`ps -ef | grep -v grep | grep SrvDataClient.py | awk '{print $2}'`
 
-[ ! -z "$pidSrvSend" ] && echo "SrvSend PID: [$pidSrvSend]" && kill -9 "$pidSrvSend"
-[ ! -z "$pidSrvDataClient" ] && echo "SrvDataClient PID: [$pidSrvDataClient]" && kill -9 "$pidSrvDataClient"
+[ ! -z "$pidSrvSend" ] && echo "SrvSend PID: [$pidSrvSend]" && kill -USR1 "$pidSrvSend"
+[ ! -z "$pidSrvDataClient" ] && echo "SrvDataClient PID: [$pidSrvDataClient]" && kill -USR1 "$pidSrvDataClient"

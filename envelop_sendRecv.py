@@ -20,10 +20,12 @@ class connection:
 			self.servsock = socket.socket(family, socktype)
 		except OSError as e:
 			return([False, f"{e.errno} {e.strerror}"])
+		except ConnectionError as e:
+			return([False, f"ConnectionError {e}"])
 		except KeyboardInterrupt:
 			return([False, "KeyboardInterrupt"])
 		except Exception as e:
-			return([False, e, ""])
+			return([False, e])
 		except BaseException as e:
 			return([False, f"BaseException {str(e)}"])
 		except:
@@ -37,10 +39,12 @@ class connection:
 			self.servsock.listen(listen)
 		except OSError as e:
 			return([False, f"{e.errno} {e.strerror}"])
+		except ConnectionError as e:
+			return([False, f"ConnectionError {e}"])
 		except KeyboardInterrupt:
 			return([False, "KeyboardInterrupt"])
 		except Exception as e:
-			return([False, e, ""])
+			return([False, e])
 		except BaseException as e:
 			return([False, f"BaseException {str(e)}"])
 		except:
@@ -53,10 +57,12 @@ class connection:
 			self.servsock.setsockopt(socket.SOL_SOCKET, opt, 1)
 		except OSError as e:
 			return([False, f"{e.errno} {e.strerror}"])
+		except ConnectionError as e:
+			return([False, f"ConnectionError {e}"])
 		except KeyboardInterrupt:
 			return([False, "KeyboardInterrupt"])
 		except Exception as e:
-			return([False, e, ""])
+			return([False, e])
 		except BaseException as e:
 			return([False, f"BaseException {str(e)}"])
 		except:
@@ -69,10 +75,12 @@ class connection:
 			self.servsock.shutdown(socket.SHUT_RDWR)
 		except OSError as e:
 			return([False, f"{e.errno} {e.strerror}"])
+		except ConnectionError as e:
+			return([False, f"ConnectionError {e}"])
 		except KeyboardInterrupt:
 			return([False, "KeyboardInterrupt"])
 		except Exception as e:
-			return([False, e, ""])
+			return([False, e])
 		except BaseException as e:
 			return([False, f"BaseException {str(e)}"])
 		except:
@@ -85,10 +93,12 @@ class connection:
 			self.clientsock.shutdown(socket.SHUT_RDWR)
 		except OSError as e:
 			return([False, f"{e.errno} {e.strerror}"])
+		except ConnectionError as e:
+			return([False, f"ConnectionError {e}"])
 		except KeyboardInterrupt:
 			return([False, "KeyboardInterrupt"])
 		except Exception as e:
-			return([False, e, ""])
+			return([False, e])
 		except BaseException as e:
 			return([False, f"BaseException {str(e)}"])
 		except:
@@ -101,6 +111,8 @@ class connection:
 			self.clientsock, address = self.servsock.accept()
 		except OSError as e:
 			return([False, f"{e.errno} {e.strerror}", ""])
+		except ConnectionError as e:
+			return([False, f"ConnectionError {e}", ""])
 		except KeyboardInterrupt:
 			return([False, "KeyboardInterrupt", ""])
 		except Exception as e:
@@ -115,17 +127,34 @@ class connection:
 	def connectToServer(self, address, port, family, socktype)->[bool, str]:
 		try:
 			self.clientsock = socket.socket(family, socktype)
+		except OSError as e:
+			return([False, f"Erro socket: {e.errno} {e.strerror}"])
+		except ConnectionError as e:
+			return([False, f"Erro socket: ConnectionError {e}"])
+		except KeyboardInterrupt:
+			return([False, "Erro socket: KeyboardInterrupt"])
+		except Exception as e:
+			return([False, e])
+		except BaseException as e:
+			return([False, f"Erro socket: BaseException {str(e)}"])
+		except:
+			return([False, "Erro socket: unknow exception"])
+
+		# i hate 'exception' (in c++ too, the ideia). i intentionally do bad code on purpose with it.
+		try:
 			self.clientsock.connect((address, port))
 		except OSError as e:
-			return([False, f"{e.errno} {e.strerror}"])
+			return([False, f"Erro connect: {e.errno} {e.strerror}"])
+		except ConnectionError as e:
+			return([False, f"Erro connect: ConnectionError {e}"])
 		except KeyboardInterrupt:
-			return([False, "KeyboardInterrupt"])
+			return([False, "Erro connect: KeyboardInterrupt"])
 		except Exception as e:
-			return([False, e, ""])
+			return([False, e])
 		except BaseException as e:
-			return([False, f"BaseException {str(e)}"])
+			return([False, f"Erro connect: BaseException {str(e)}"])
 		except:
-			return([False, "Unknow exception"])
+			return([False, "Erro connect: unknow exception"])
 
 		return([True, "Ok"])
 
@@ -137,10 +166,12 @@ class connection:
 			self.clientsock.sendall(bytes(msg, "utf-8"))
 		except OSError as e:
 			return([False, f"{e.errno} {e.strerror}"])
+		except ConnectionError as e:
+			return([False, f"ConnectionError {e}"])
 		except KeyboardInterrupt:
 			return([False, "KeyboardInterrupt"])
 		except Exception as e:
-			return([False, e, ""])
+			return([False, e])
 		except BaseException as e:
 			return([False, f"BaseException {str(e)}"])
 		except:
@@ -160,7 +191,20 @@ class connection:
 
 		while recvBufSz < HEADERSIZE:
 
-			chunk = self.clientsock.recv(HEADERSIZE - recvBufSz)
+			try:
+				chunk = self.clientsock.recv(HEADERSIZE - recvBufSz)
+			except OSError as e:
+				return([False, f"Erro reading msg envelop: {e.errno} {e.strerror}", ""])
+			except ConnectionError as e:
+				return([False, f"Erro reading msg envelop: ConnectionError {e}", ""])
+			except KeyboardInterrupt:
+				return([False, "Erro reading msg envelop: KeyboardInterrupt", ""])
+			except Exception as e:
+				return([False, f"Erro reading msg envelop: {e}", ""])
+			except BaseException as e:
+				return([False, f"Erro reading msg envelop: BaseException {str(e)}", ""])
+			except:
+				return([False, "Erro reading msg envelop: Unknow exception", ""])
 
 			if chunk == b'':
 				return([False, "Socket connection broken", ""])
@@ -176,7 +220,20 @@ class connection:
 
 		while recvBufSz < msgSz:
 
-			chunk = self.clientsock.recv(msgSz - recvBufSz)
+			try:
+				chunk = self.clientsock.recv(msgSz - recvBufSz)
+			except OSError as e:
+				return([False, f"Erro reading msg: {e.errno} {e.strerror}", ""])
+			except ConnectionError as e:
+				return([False, f"Erro reading msg: ConnectionError {e}", ""])
+			except KeyboardInterrupt:
+				return([False, "Erro reading msg: KeyboardInterrupt", ""])
+			except Exception as e:
+				return([False, f"Erro reading msg: {e}", ""])
+			except BaseException as e:
+				return([False, f"Erro reading msg: BaseException {str(e)}", ""])
+			except:
+				return([False, "Erro reading msg: Unknow exception", ""])
 
 			if chunk == b'':
 				return([False, "Socket connection broken", ""])
