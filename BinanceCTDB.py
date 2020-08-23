@@ -9,6 +9,8 @@ import abc
 import sqlite3
 #import psycopg2
 
+import BinanceCTProto
+
 CT_DB_TYPE_SQLITE     = "sqlite"
 CT_DB_TYPE_POSTGRESQL = "postgresql"
 CT_DB_TYPE_RAM        = "ram"
@@ -28,6 +30,14 @@ class CT_DB_INTERFACE(metaclass=abc.ABCMeta):
 
 	@abc.abstractmethod
 	def quit(self)->[bool, str]:
+		pass
+
+	@abc.abstractmethod
+	def createTablesIfNotExist(self)->[bool, str]:
+		pass
+
+	@abc.abstractmethod
+	def insertCmd(self, cmd : BinanceCTProto.CT_PROTO)->[bool, str]:
 		pass
 
 class CT_DB_SQLITE(CT_DB_INTERFACE):
@@ -86,6 +96,9 @@ class CT_DB_SQLITE(CT_DB_INTERFACE):
 		self.conn.commit()
 		return([True, "Ok"])
 
+	def insertCmd(self, cmd : BinanceCTProto.CT_PROTO)->[bool, str]:
+		return([False, "Not implemented"])
+
 class CT_DB_POSTGRESQL(CT_DB_INTERFACE):
 	user   = ""
 	passwd = ""
@@ -108,6 +121,9 @@ class CT_DB_POSTGRESQL(CT_DB_INTERFACE):
 	def quit(self)->[bool, str]:
 		return([False, "Not implemented"])
 
+	def insertCmd(self, cmd : BinanceCTProto.CT_PROTO)->[bool, str]:
+		return([False, "Not implemented"])
+
 class CT_DB_RAM(CT_DB_INTERFACE):
 	def connect(self)->[bool, str]:
 		return([False, "Not implemented"])
@@ -119,6 +135,9 @@ class CT_DB_RAM(CT_DB_INTERFACE):
 		return([False, "Not implemented"])
 
 	def createTablesIfNotExist(self)->[bool, str]:
+		return([False, "Not implemented"])
+
+	def insertCmd(self, cmd : BinanceCTProto.CT_PROTO)->[bool, str]:
 		return([False, "Not implemented"])
 
 class CT_DB:

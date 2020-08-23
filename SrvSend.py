@@ -7,7 +7,8 @@ from BinanceCTUtil import getTimeStamp
 from sys import exit, argv, stderr
 from os import getpid
 from signal import signal, SIGILL, SIGTRAP, SIGINT, SIGHUP, SIGTERM, SIGSEGV, SIGUSR1
-from BinanceCTDB import CT_DB_TYPE_SQLITE, CT_DB_TYPE_POSTGRESQL
+#from BinanceCTDB import CT_DB, CT_DB_TYPE_SQLITE, CT_DB_TYPE_POSTGRESQL
+import  BinanceCTDB
 import BinanceCTProto
 import envelop_sendRecv
 import socket
@@ -19,16 +20,28 @@ if len(argv) != 2:
 	print(f"Usage:\n\t{argv[0]} CFG_FILE.cfg")
 	exit(1)
 
+def safeExit(num : int = 0):
+	srvDB.DB.commit()
+	srvDB.DB.quit()
+
+	exit(num)
+
 def execCmdCopytradeReq(recv : BinanceCTProto.CT_PROTO = None)->[bool, str, BinanceCTProto.CT_PROTO]: 
+
+	srvDB.DB.insertCmd(recv)
 
 	sendForward = BinanceCTProto.CT_PROTO(
 	             _cmd            = BinanceCTProto.CT_CMD_COPYTRADE,
 	             _fromto_from    = recv.fromto['from'],
 	             _fromto_to      = recv.fromto['to'],
-	             _timestamp      = recv.timestamp, # CopyTrade timestamp
+	             _timestamp      = getTimeStamp(),
 	             _cmdtype        = recv.cmdtype,
-	             _resp_timestamp = recv.resp_timestamp, # should be empty (a request..)
+	             _resp_timestamp = recv.timestamp, # client will receive CopyTrade timestamp here
 	             _data           = recv.data)
+
+	srvDB.DB.insertCmd(sendForward)
+
+	srvDB.DB.commit()
 
 	return([True, "Ok", sendForward])
 
@@ -79,10 +92,10 @@ try:
 
 	db_engine = cfgFile['DB']['engine']
 
-	if db_engine == CT_DB_TYPE_SQLITE:
+	if db_engine == BinanceCTDB.CT_DB_TYPE_SQLITE:
 		db_file = cfgFile['DB']['file']
 
-	elif db_engine == CT_DB_TYPE_POSTGRESQL:
+	elif db_engine == BinanceCTDB.CT_DB_TYPE_POSTGRESQL:
 		db_user = cfgFile['DB']['user']
 		db_pass = cfgFile['DB']['pass']
 		db_port = cfgFile['DB']['port']
@@ -123,12 +136,26 @@ logging.info(f"Signal Source Max Conns: [{signalSource_maxconn}]")
 
 logging.info(f"DB Engine..............: [{db_engine}]")
 
-if db_engine == CT_DB_TYPE_SQLITE:
+if db_engine == BinanceCTDB.CT_DB_TYPE_SQLITE:
 	logging.info(f"DB File................: [{db_file}]")
-elif db_engine == CT_DB_TYPE_POSTGRESQL:
+elif db_engine == BinanceCTDB.CT_DB_TYPE_POSTGRESQL:
 	logging.info(f"DB User................: [{db_user}]")
 	logging.info(f"DB Port................: [{db_port}]")
 	logging.info(f"DB Schema..............: [{db_schema}]")
+
+# --- DATABASE ----------------------------
+
+srvDB = BinanceCTDB.CT_DB(_engine = db_engine, _sqliteDBFile = db_file)
+
+ret, retmsg = srvDB.DB.connect()
+if ret == False:
+	logging.info(f"Error opening database: [{retmsg}]")
+	exit(1)
+
+ret, retmsg = srvDB.DB.createTablesIfNotExist()
+if ret == False:
+	logging.info(f"Error creating tables: [{retmsg}]")
+	safeExit(1)
 
 # --- PUB/SUB -----------------------------
 
@@ -143,17 +170,17 @@ conn = envelop_sendRecv.connection()
 ret, retmsg = conn.serverLoad(socket.AF_INET, socket.SOCK_STREAM)
 if ret == False:
 	logging.info(f"Erro loading server: [{retmsg}]!")
-	exit(1)
+	safeExit(1)
 
 ret, retmsg = conn.sockOpts(socket.SO_REUSEADDR)
 if ret == False:
 	logging.info(f"Erro sockOpts server: [{retmsg}]!")
-	exit(1)
+	safeExit(1)
 
 ret, retmsg = conn.serverBindListen(int(signalSource_port), int(signalSource_maxconn))
 if ret == False:
 	logging.info(f"Erro binding server: [{retmsg}]!")
-	exit(1)
+	safeExit(1)
 
 # -----------------------------------------
 
@@ -164,12 +191,12 @@ while True:
 	ret, msgret, client = conn.serverAccept()
 	if ret == False:
 		logging.info(f'Connection error: [{msgret}].')
-		exit(1)
+		safeExit(1)
 
 	ret, retmsg, msgRecv = conn.recvMsg()
 	if ret == False:
 		print(f"Error: [{retmsg}]")
-		exit(1)
+		safeExit(1)
 
 	logging.info(f'Connection from [{client}] Msg [{msgRecv}]')
 
