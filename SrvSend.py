@@ -77,6 +77,7 @@ def execCmdCopytradeReq(recv : BinanceCTProto.CT_PROTO = None)->[bool, str, Bina
 	return([True, "Ok", sendForward, sendResponse])
 
 def execCmdPingReq(recv : BinanceCTProto.CT_PROTO = None)->[bool, str, BinanceCTProto.CT_PROTO, BinanceCTProto.CT_PROTO]:
+
 	sendBadResponse = BinanceCTProto.CT_PROTO(_cmd            = recv.cmd,
 	                                          _fromto_from    = recv.fromto['to'],
 	                                          _fromto_to      = recv.fromto['from'],
@@ -84,6 +85,7 @@ def execCmdPingReq(recv : BinanceCTProto.CT_PROTO = None)->[bool, str, BinanceCT
 	                                          _cmdtype        = BinanceCTProto.CT_TYPE_RESPONSE,
 	                                          _resp_timestamp = recv.timestamp,
 	                                          _data           = BinanceCTProto.CT_PROTO_RESPONSE(BinanceCTProto.CT_PROTO_RESP_PING, "Ping resp"))
+
 	return([True, "Ok", recv, sendResponse])
 
 def execCmdCancelOrderReq(recv : BinanceCTProto.CT_PROTO = None)->[bool, str, BinanceCTProto.CT_PROTO, BinanceCTProto.CT_PROTO]:
@@ -101,7 +103,18 @@ def execCmdCancelOrderReq(recv : BinanceCTProto.CT_PROTO = None)->[bool, str, Bi
 	return([True, "Ok", None, sendResponse])
 
 def execCmdGetOpenOrdersReq(recv : BinanceCTProto.CT_PROTO = None)->[bool, str, BinanceCTProto.CT_PROTO, BinanceCTProto.CT_PROTO]:
-	return([True, "Ok", None, None])
+
+	# TODO: send get open orders to pubsub
+
+	sendResponse = BinanceCTProto.CT_PROTO(_cmd            = recv.cmd,
+	                                       _fromto_from    = recv.fromto['to'],
+	                                       _fromto_to      = recv.fromto['from'],
+	                                       _timestamp      = getTimeStamp(),
+	                                       _cmdtype        = BinanceCTProto.CT_TYPE_RESPONSE,
+	                                       _resp_timestamp = recv.timestamp,
+	                                       _data           = BinanceCTProto.CT_PROTO_RESPONSE(BinanceCTProto.CT_PROTO_RESP_OK, "Ok"))
+
+	return([True, "Ok", None, sendResponse])
 
 def sendToPUBSUB(pubsock, topic : str = "", msg : str = "")->[bool, str]:
 
