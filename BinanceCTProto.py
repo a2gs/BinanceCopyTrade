@@ -237,7 +237,7 @@ def dumpCmdToLog(dumpCmd : CT_PROTO, log):
 			log(f"\tReturn message: [{dumpCmd.data.retmsg}]")
 
 		elif dumpCmd.cmdtype == CT_TYPE_REQUEST:
-			log("\tTODO 2...")
+			log(f"\tServer order id: [{dumpCmd.data.server_order_id}]")
 
 		else:
 			log("Unknow data structure for this cmd type.")
@@ -248,15 +248,22 @@ def dumpCmdToLog(dumpCmd : CT_PROTO, log):
 			log(f"\tReturn message: [{dumpCmd.data.retmsg}]")
 
 		elif dumpCmd.cmdtype == CT_TYPE_REQUEST:
-			log("\tTODO 3...")
+
+			def printOpenOrder(log, n, order):
+				log(f"\t{n}) Symbol..........: [{order['symbol']}]")
+				log(f"\tOrder id...........: [{order['ordid']}]")
+				log(f"\tSide...............: [{order['side']}]")
+				log(f"\tOrder type.........: [{order['ordtype']}]")
+				log(f"\tPrice..............: [{order['price']}]")
+				log(f"\tServer order id ref: [{order['server_order_id_ref']}]")
+
+			[printOpenOrder(log, n, i.element) for n, i in enumerate(dumpCmd.data.open_orders, 1)]
 
 		else:
 			log("Unknow data structure for this cmd type.")
 
 	else:
 		log("Unknow data structure for this cmd.")
-
-
 
 
 '''
