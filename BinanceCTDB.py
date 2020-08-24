@@ -20,8 +20,14 @@ class CT_DB_INTERFACE(metaclass=abc.ABCMeta):
 	def connect(self)->[bool, str]:
 		pass
 
+	#https://docs.python.org/3/library/sqlite3.html#controlling-transactions
+	#'autocommit' is not enable into dafault sqlite3 python instalation module
 	@abc.abstractmethod
 	def commit(self)->[bool, str]:
+		pass
+
+	@abc.abstractmethod
+	def rollback(self)->[bool, str]:
 		pass
 
 	@abc.abstractmethod
@@ -64,6 +70,9 @@ class CT_DB_SQLITE(CT_DB_INTERFACE):
 
 		return([True, "Ok"])
 
+	def rollback(self)->[bool, str]:
+		pass
+
 	def quit(self)->[bool, str]:
 		try:
 			self.conn.close()
@@ -90,14 +99,53 @@ class CT_DB_SQLITE(CT_DB_INTERFACE):
 
 		try:
 			[self.conn.execute(i) for i in createTables]
-		except Error as e:
-			return([False, e])
+			self.conn.commit()
 
-		self.conn.commit()
+		except sqlite3.Error as e:
+			return([False, f"DB erro createTables Error: {e}"])
+		except sqlite3.Warning as e:
+			return([False, f"DB erro createTables Warning: {e}"])
+		except sqlite3.DatabaseError as e:
+			return([False, f"DB erro createTables DatabaseError: {e}"])
+		except sqlite3.IntegrityError as e:
+			return([False, f"DB erro createTables IntegrityError: {e}"])
+		except sqlite3.ProgrammingError as e:
+			return([False, f"DB erro createTables ProgrammingError: {e}"])
+		except sqlite3.OperationalError as e:
+			return([False, f"DB erro createTables OperationalError: {e}"])
+		except sqlite3.NotSupportedError as e:
+			return([False, f"DB erro createTables NotSupported: {e}"])
+
 		return([True, "Ok"])
 
 	def insertCmd(self, cmd : BinanceCTProto.CT_PROTO)->[bool, str]:
-		return([False, "Not implemented"])
+
+		cmdValues = (cmd.cmd, cmd.fromto['from'], cmd.fromto['to'], cmd.timestamp, cmd.cmdtype, cmd.resp_timestamp, f"{cmd.data}")
+
+		cmdInsert = "INSERT INTO CMDS (cmd, fromid, toid, timestamp, typecmd, resp_timestamp, datacmd) VALUES (?, ?, ?, ?, ?, ?, ?)"
+
+		try:
+			cur = self.conn.cursor()
+			cur.execute(cmdInsert, cmdValues)
+
+			self.conn.commit()
+
+		except sqlite3.Error as e:
+			return([False, f"DB erro insertCmd Error: {e}"])
+		except sqlite3.Warning as e:
+			return([False, f"DB erro insertCmd Warning: {e}"])
+		except sqlite3.DatabaseError as e:
+			return([False, f"DB erro insertCmd DatabaseError: {e}"])
+		except sqlite3.IntegrityError as e:
+			return([False, f"DB erro insertCmd IntegrityError: {e}"])
+		except sqlite3.ProgrammingError as e:
+			return([False, f"DB erro insertCmd ProgrammingError: {e}"])
+		except sqlite3.OperationalError as e:
+			return([False, f"DB erro insertCmd OperationalError: {e}"])
+		except sqlite3.NotSupportedError as e:
+			return([False, f"DB erro insertCmd NotSupported: {e}"])
+
+		return([True, "Ok"])
 
 class CT_DB_POSTGRESQL(CT_DB_INTERFACE):
 	user   = ""
@@ -115,6 +163,9 @@ class CT_DB_POSTGRESQL(CT_DB_INTERFACE):
 	def commit(self)->[bool, str]:
 		return([False, "Not implemented"])
 
+	def rollback(self)->[bool, str]:
+		pass
+
 	def createTablesIfNotExist(self)->[bool, str]:
 		return([False, "Not implemented"])
 
@@ -130,6 +181,9 @@ class CT_DB_RAM(CT_DB_INTERFACE):
 
 	def commit(self)->[bool, str]:
 		return([False, "Not implemented"])
+
+	def rollback(self)->[bool, str]:
+		pass
 
 	def quit(self)->[bool, str]:
 		return([False, "Not implemented"])

@@ -14,6 +14,14 @@ CT_CMD_GETOPENORDERS = "OPENORDERS"
 CT_TYPE_RESPONSE = "RESP"
 CT_TYPE_REQUEST  = "REQ"
 
+# Response RefNum (data['ret'])
+CT_PROTO_RESP_OK          = 0
+CT_PROTO_RESP_PING        = 1
+CT_PROTO_RESP_BAD_PROTO   = 2
+CT_PROTO_COPYTRADE_ERROR1 = 3
+CT_PROTO_COPYTRADE_ERROR2 = 4
+CT_PROTO_COPYTRADE_ERROR3 = 5
+
 class CT_PROTO:
 	cmd            = ""
 	fromto         = {'from' : "", 'to': ""}
@@ -52,25 +60,36 @@ class CT_PROTO:
 			'resp_timestamp' : self.resp_timestamp,
 		}
 
-		if self.cmd == CT_CMD_COPYTRADE:
-			msg['data'] = {}
+		msg['data'] = {}
 
-			msg['data']['symbol']  = self.data.symbol
-			msg['data']['side']    = self.data.side
-			msg['data']['ordid']   = self.data.ordid
-			msg['data']['ordtype'] = self.data.ordtype
-			msg['data']['price']   = self.data.price
+		if self.cmd == CT_CMD_COPYTRADE:
+			if msg['type'] == CT_TYPE_REQUEST:
+				msg['data']['symbol']  = self.data.symbol
+				msg['data']['side']    = self.data.side
+				msg['data']['ordid']   = self.data.ordid
+				msg['data']['ordtype'] = self.data.ordtype
+				msg['data']['price']   = self.data.price
+
+			elif msg['type'] == CT_TYPE_RESPONSE:
+				msg['data']['ret']    = self.data.ret
+				msg['data']['retmsg'] = self.data.retmsg
 
 		elif self.cmd == CT_CMD_CANCELORDER:
-			msg['data'] = {
-				'server_order_id' : self.data.server_order_id
-			}
+			if msg['type'] == CT_TYPE_REQUEST:
+				msg['data'] = { 'server_order_id' : self.data.server_order_id }
+
+			elif msg['type'] == CT_TYPE_RESPONSE:
+				msg['data']['ret']    = self.data.ret
+				msg['data']['retmsg'] = self.data.retmsg
+
 		elif self.cmd == CT_CMD_GETOPENORDERS:
-			msg['data'] = {
-				'openorders' : []
-			}
-		
-			[msg['data']['openorders'].append(i.element) for i in self.data.open_orders]
+			if msg['type'] == CT_TYPE_REQUEST:
+				msg['data'] = { 'openorders' : [] }
+				[msg['data']['openorders'].append(i.element) for i in self.data.open_orders]
+
+			elif msg['type'] == CT_TYPE_RESPONSE:
+				msg['data']['ret']    = self.data.ret
+				msg['data']['retmsg'] = self.data.retmsg
 
 		return json.dumps(msg)
 
@@ -144,3 +163,30 @@ class CT_PROTO_COPYTRADE_DATA:
 		self.side    = _side
 		self.ordtype = _ordtype
 		self.price   = _price
+
+	def __str__(self):
+		return(f"Symb {self.symbol}|OrderId {self.ordid}|Side {self.side}|OrderType {self.ordtype}|Price {self.price}")
+
+class CT_PROTO_RESPONSE:
+	ret = 0
+	retmsg = ""
+
+	def __init__(self, _ret : int = 0, _retmsg : str = ""):
+		self.ret    = _ret
+		self.retmsg = _retmsg
+
+
+
+'''
+aaa = CT_PROTO(
+	             _cmd            = "aaa",
+	             _fromto_from    = "bbb",
+	             _fromto_to      = "ccc",
+	             _timestamp      = "ddd",
+	             _cmdtype        = "eee",
+	             _resp_timestamp = "fff")
+
+aaa.data = CT_PROTO_COPYTRADE_DATA( _symbol = "xxx", _ordid = "yyy", _side = "zzz", _ordtype = "qqq", _price = "www")
+
+print(aaa.data)
+'''
