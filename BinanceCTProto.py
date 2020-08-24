@@ -121,8 +121,7 @@ class CT_PROTO:
 			self.data = CT_PROTO_CANCELORDER_DATA()
 
 			if self.cmdtype == CT_TYPE_REQUEST:
-				# TODO: copy data set
-				pass
+				self.data.server_order_id = jsonDump['data']['server_order_id']
 
 			elif self.cmdtype == CT_TYPE_RESPONSE:
 				self.data.ret    = jsonDump['data']['ret']
@@ -138,6 +137,9 @@ class CT_PROTO:
 			elif self.cmdtype == CT_TYPE_RESPONSE:
 				self.data.ret    = jsonDump['data']['ret']
 				self.data.retmsg = jsonDump['data']['retmsg']
+
+		else:
+			self.data = None
 
 class CT_PROTO_CANCELORDER_DATA:
 	server_order_id = ""

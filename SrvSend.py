@@ -198,7 +198,7 @@ del cfgFile
 
 try:
 	logging.basicConfig(filename = pub_log,
-	                    level    = logging.DEBUG,
+	                    level    = logging.INFO,
 	                    format   = '%(asctime)s %(message)s',
 	                    datefmt  = '%Y%m%d %H%M%S')
 except:
@@ -281,16 +281,18 @@ while True:
 		print(f"Error: [{retmsg}]")
 		safeExit(1)
 
-	logging.info(f'Connection from [{client}] Msg [{msgRecv}]')
-
 	recv = BinanceCTProto.CT_PROTO()
 
 	recv.loadFromNet(msgRecv)
 
+	logging.debug(f'Msg: [{msgRecv}]')
+	logging.info(f"-------------------------------")
+	logging.info(f"RECEIVED FROM SOCKET [{client[0]}:{client[1]}]:")
+	BinanceCTProto.dumpCmdToLog(recv, logging.info)
+
 	# here we may place a recv.fromto['from'] validation through a "valid CopyTrade clients" list from config file. at first we will execute from ALL incoming.
 
 	if recv.cmd == BinanceCTProto.CT_CMD_COPYTRADE:
-		logging.info("Received a COPYTRAPE cmd")
 
 		# a CopyTrade client sent a trade.
 		if recv.cmdtype == BinanceCTProto.CT_TYPE_REQUEST:
@@ -324,7 +326,7 @@ while True:
 			safeExit(1) # TODO: exit proc?
 
 	elif recv.cmd == BinanceCTProto.CT_CMD_CANCELORDER:
-		logging.info("Received a CANCELORDER cmd")
+
 		ret, retmsg, sendForward, sendResponse = execCmdCancelOrderReq(recv)
 		if ret == False:
 			logging.info(f"Error execCncelOrderReq() [{retmsg}]!")
@@ -332,7 +334,7 @@ while True:
 			safeExit(1) # TODO: exit proc?
 
 	elif recv.cmd == BinanceCTProto.CT_CMD_GETOPENORDERS:
-		logging.info("Received a GETOPENORDERS cmd")
+
 		ret, retmsg, sendForward, sendResponse = execCmdGetOpenOrdersReq(recv)
 		if ret == False:
 			logging.info(f"Error execCmdGetOpenOrdersReq() [{retmsg}]!")
@@ -345,6 +347,10 @@ while True:
 	# sending to PUBSUB clients
 	if sendForward != None:  # if None, there is nothing to forwarda (not everything should go to pubsub)
 		ret, retmsg = sendToPUBSUB(pub_socket, pub_topic, sendForward.formatToNet()) 
+
+		logging.info(f"SENT TO PUBSUB [{pub_topic}]:")
+		BinanceCTProto.dumpCmdToLog(sendForward, logging.info)
+
 		if ret == False:
 			logging.info(f"Error sendToPUBSUB() [{retmsg}]!")
 			srvDB.DB.rollback()
@@ -355,6 +361,8 @@ while True:
 	if sendResponse != None:  # allways must be !None, .... but exeCmd...() functions could not does your correct work (these functions returns sendResponse parameters ALWAYS, EVEN IF returns ret = False).
 		resp = sendResponse.formatToNet()
 
+		logging.info("SENT TO SOCKET:")
+		BinanceCTProto.dumpCmdToLog(sendResponse, logging.info)
 	else:
 		sendBadResponse = BinanceCTProto.CT_PROTO(_cmd            = recv.cmd,
 		                                          _fromto_from    = recv.fromto['to'],
@@ -364,6 +372,9 @@ while True:
 		                                          _resp_timestamp = recv.timestamp,
 		                                          _data           = BinanceCTProto.CT_PROTO_RESPONSE(BinanceCTProto.CT_PROTO_RESP_BAD_PROTO, "Bad protocol"))
 		resp = sendBadResponse.formatToNet()
+
+		logging.info("SENT TO COPYTRADE:")
+		BinanceCTProto.dumpCmdToLog(sendBadResponse, logging.info)
 		del sendBadResponse
 
 	conn.sendMsg(resp, len(resp))
