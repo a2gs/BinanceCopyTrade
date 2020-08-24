@@ -15,7 +15,6 @@ import envelop_sendRecv
 import socket
 import BinanceCTProto
 from BinanceCTUtil import getTimeStamp
-#from BinanceCTUtil_dumps import dumpCmdToLog
 from BinanceCTDB import CT_DB_TYPE_SQLITE, CT_DB_TYPE_POSTGRESQL
 
 from binance.client import Client
@@ -127,8 +126,6 @@ sub_socket = sub_ctx.socket(zmq.SUB)
 sub_socket.connect(sub_address)
 sub_socket.setsockopt_string(zmq.SUBSCRIBE, sub_topic)
 sub_socket.setsockopt_string(zmq.SUBSCRIBE, sub_name) #SELF QUEUE
-
-logging.info(f"SUB: [{sub_address} - {sub_topic}]")
 
 # --- BINANCE CONNECTION ------------------
 

@@ -106,19 +106,38 @@ class CT_PROTO:
 		if self.cmd == CT_CMD_COPYTRADE:
 			self.data = CT_PROTO_COPYTRADE_DATA()
 
-			self.data.symbol  = jsonDump['data']['symbol']
-			self.data.side    = jsonDump['data']['side']
-			self.data.ordid   = jsonDump['data']['ordid']
-			self.data.ordtype = jsonDump['data']['ordtype']
-			self.data.price   = jsonDump['data']['price']
+			if self.cmdtype == CT_TYPE_REQUEST:
+				self.data.symbol  = jsonDump['data']['symbol']
+				self.data.side    = jsonDump['data']['side']
+				self.data.ordid   = jsonDump['data']['ordid']
+				self.data.ordtype = jsonDump['data']['ordtype']
+				self.data.price   = jsonDump['data']['price']
+
+			elif self.cmdtype == CT_TYPE_RESPONSE:
+				self.data.ret    = jsonDump['data']['ret']
+				self.data.retmsg = jsonDump['data']['retmsg']
 
 		elif self.cmd == CT_CMD_CANCELORDER:
 			self.data = CT_PROTO_CANCELORDER_DATA()
-			# TODO: copy data set
+
+			if self.cmdtype == CT_TYPE_REQUEST:
+				# TODO: copy data set
+				pass
+
+			elif self.cmdtype == CT_TYPE_RESPONSE:
+				self.data.ret    = jsonDump['data']['ret']
+				self.data.retmsg = jsonDump['data']['retmsg']
 
 		elif self.cmd == CT_CMD_GETOPENORDERS:
 			self.data = CT_PROTO_GETOPENORDERS()
-			# TODO: copy data set
+
+			if self.cmdtype == CT_TYPE_REQUEST:
+				# TODO: copy data set
+				pass
+
+			elif self.cmdtype == CT_TYPE_RESPONSE:
+				self.data.ret    = jsonDump['data']['ret']
+				self.data.retmsg = jsonDump['data']['retmsg']
 
 class CT_PROTO_CANCELORDER_DATA:
 	server_order_id = ""
@@ -176,12 +195,12 @@ class CT_PROTO_RESPONSE:
 		self.retmsg = _retmsg
 
 def dumpCmdToLog(dumpCmd : CT_PROTO, log):
-	log(f"Command...........: {dumpCmd.cmd}")
-	log(f"From..............: {dumpCmd.fromto['from']}")
-	log(f"To................: {dumpCmd.fromto['to']}")
-	log(f"Type..............: {dumpCmd.cmdtype}")
-	log(f"Timestamp.........: {dumpCmd.timestamp}")
-	log(f"Response timestamp: {dumpCmd.resp_timestamp}")
+	log(f"Command...........: [{dumpCmd.cmd}]")
+	log(f"From..............: [{dumpCmd.fromto['from']}]")
+	log(f"To................: [{dumpCmd.fromto['to']}]")
+	log(f"Type..............: [{dumpCmd.cmdtype}]")
+	log(f"Timestamp.........: [{dumpCmd.timestamp}]")
+	log(f"Response timestamp: [{dumpCmd.resp_timestamp}]")
 
 	log("Data:")
 
@@ -199,7 +218,7 @@ def dumpCmdToLog(dumpCmd : CT_PROTO, log):
 			log(f"\tPrice.: [{dumpCmd.data.price}]")
 
 		else:
-			log(f"Unknow data structure for this cmd type.")
+			log("Unknow data structure for this cmd type.")
 
 	elif dumpCmd.cmd == CT_CMD_PING:
 		if dumpCmd.cmdtype == CT_TYPE_RESPONSE:
@@ -207,10 +226,10 @@ def dumpCmdToLog(dumpCmd : CT_PROTO, log):
 			log(f"\tReturn message: [{dumpCmd.data.retmsg}]")
 
 		elif dumpCmd.cmdtype == CT_TYPE_REQUEST:
-			log(f"\tTODO 1...")
+			log("\tTODO 1...")
 
 		else:
-			log(f"Unknow data structure for this cmd type.")
+			log("Unknow data structure for this cmd type.")
 
 	elif dumpCmd.cmd == CT_CMD_CANCELORDER:
 		if dumpCmd.cmdtype == CT_TYPE_RESPONSE:
@@ -218,10 +237,10 @@ def dumpCmdToLog(dumpCmd : CT_PROTO, log):
 			log(f"\tReturn message: [{dumpCmd.data.retmsg}]")
 
 		elif dumpCmd.cmdtype == CT_TYPE_REQUEST:
-			log(f"\tTODO 2...")
+			log("\tTODO 2...")
 
 		else:
-			log(f"Unknow data structure for this cmd type.")
+			log("Unknow data structure for this cmd type.")
 
 	elif dumpCmd.cmd == CT_CMD_GETOPENORDERS:
 		if dumpCmd.cmdtype == CT_TYPE_RESPONSE:
@@ -229,13 +248,13 @@ def dumpCmdToLog(dumpCmd : CT_PROTO, log):
 			log(f"\tReturn message: [{dumpCmd.data.retmsg}]")
 
 		elif dumpCmd.cmdtype == CT_TYPE_REQUEST:
-			log(f"\tTODO 3...")
+			log("\tTODO 3...")
 
 		else:
-			log(f"Unknow data structure for this cmd type.")
+			log("Unknow data structure for this cmd type.")
 
 	else:
-		log(f"Unknow data structure for this cmd.")
+		log("Unknow data structure for this cmd.")
 
 
 

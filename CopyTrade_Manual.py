@@ -33,8 +33,8 @@ except Exception as e:
 
 del cfgFile
 
-# --- SOCKET - SAMPLE 1 -------------------
-print("--- SOCKET - SAMPLE 1 -------------------")
+# --- SAMPLE 1 -------------------
+print("--- SAMPLE 1 -------------------")
 
 con = envelop_sendRecv.connection()
 ret, msgret = con.connectToServer(ctm_signalSource_address, int(ctm_signalSource_port), socket.AF_INET, socket.SOCK_STREAM)
@@ -45,7 +45,7 @@ if ret == False:
 copytrade_sample1 = BinanceCTProto.CT_PROTO()
 copytrade_sample1.cmd = BinanceCTProto.CT_CMD_COPYTRADE
 
-copytrade_sample1.fromto = { 'from' : ctm_name, 'to': "anyone" }
+copytrade_sample1.fromto = { 'from' : ctm_name, 'to': 'SrvSend' }
 copytrade_sample1.timestamp = getTimeStamp()
 copytrade_sample1.cmdtype = "REQ"
 copytrade_sample1.response_timestamp = ""
@@ -61,12 +61,19 @@ ret, retmsg, msgRecv = con.recvMsg()
 if ret == False:
 	print(f"Error: [{retmsg}]")
 	exit(1)
+
 con.endClient()
 
-print(f'Sent: [{msg}]\nReceived: [{msgRecv}]', file=stderr)
+copytrade_sample1_resp = BinanceCTProto.CT_PROTO()
+copytrade_sample1_resp.loadFromNet(msgRecv)
 
-# --- SOCKET - SAMPLE 2 -------------------
-print("--- SOCKET - SAMPLE 2 -------------------")
+print('Sent:')
+BinanceCTProto.dumpCmdToLog(copytrade_sample1, print)
+print('\nReceived:')
+BinanceCTProto.dumpCmdToLog(copytrade_sample1_resp, print)
+
+# --- SAMPLE 2 -------------------
+print("\n--- SAMPLE 2 -------------------")
 
 con = envelop_sendRecv.connection()
 ret, msgret = con.connectToServer(ctm_signalSource_address, int(ctm_signalSource_port), socket.AF_INET, socket.SOCK_STREAM)
@@ -85,14 +92,23 @@ cancelorder_sample1.data = BinanceCTProto.CT_PROTO_CANCELORDER_DATA(_server_orde
 
 msg = cancelorder_sample1.formatToNet()
 con.sendMsg(msg, len(msg))
-msgRecv = con.recvMsg()
+ret, retmsg, msgRecv = con.recvMsg()
+if ret == False:
+	print(f"Error: [{retmsg}]")
+	exit(1)
 
 con.endClient()
 
-print(f'Sent: [{msg}]\nReceived: [{msgRecv}]', file=stderr)
+cancelorder_sample1_resp = BinanceCTProto.CT_PROTO()
+cancelorder_sample1_resp.loadFromNet(msgRecv)
 
-# --- SOCKET - SAMPLE 3 -------------------
-print("--- SOCKET - SAMPLE 3 -------------------")
+print('Sent:')
+BinanceCTProto.dumpCmdToLog(cancelorder_sample1, print)
+print('\nReceived:')
+BinanceCTProto.dumpCmdToLog(cancelorder_sample1_resp, print)
+
+# --- SAMPLE 3 -------------------
+print("\n--- SAMPLE 3 -------------------")
 
 con = envelop_sendRecv.connection()
 ret, msgret = con.connectToServer(ctm_signalSource_address, int(ctm_signalSource_port), socket.AF_INET, socket.SOCK_STREAM)
@@ -125,10 +141,19 @@ getopenorders_sample1.data.open_orders.append(ordCCC)
 msg = getopenorders_sample1.formatToNet()
 
 con.sendMsg(msg, len(msg))
-msgRecv = con.recvMsg()
+ret, retmsg, msgRecv = con.recvMsg()
+if ret == False:
+	print(f"Error: [{retmsg}]")
+	exit(1)
+
 con.endClient()
 
-print(f'Sent: [{msg}]\nReceived: [{msgRecv}]', file=stderr)
+getopenorders_sample1_resp = BinanceCTProto.CT_PROTO()
+getopenorders_sample1_resp.loadFromNet(msgRecv)
 
+print('Sent:')
+BinanceCTProto.dumpCmdToLog(getopenorders_sample1, print)
+print('\nReceived:')
+BinanceCTProto.dumpCmdToLog(getopenorders_sample1_resp, print)
 
 # -----------------------------------------
