@@ -175,6 +175,69 @@ class CT_PROTO_RESPONSE:
 		self.ret    = _ret
 		self.retmsg = _retmsg
 
+def dumpCmdToLog(dumpCmd : CT_PROTO, log):
+	log(f"Command...........: {dumpCmd.cmd}")
+	log(f"From..............: {dumpCmd.fromto['from']}")
+	log(f"To................: {dumpCmd.fromto['to']}")
+	log(f"Type..............: {dumpCmd.cmdtype}")
+	log(f"Timestamp.........: {dumpCmd.timestamp}")
+	log(f"Response timestamp: {dumpCmd.resp_timestamp}")
+
+	log("Data:")
+
+	if dumpCmd.cmd == CT_CMD_COPYTRADE:
+
+		if dumpCmd.cmdtype == CT_TYPE_RESPONSE:
+			log(f"\tReturn........: [{dumpCmd.data.ret}]")
+			log(f"\tReturn message: [{dumpCmd.data.retmsg}]")
+
+		elif dumpCmd.cmdtype == CT_TYPE_REQUEST:
+			log(f"\tSymbol: [{dumpCmd.data.symbol}]")
+			log(f"\tSide..: [{dumpCmd.data.side}]")
+			log(f"\tId....: [{dumpCmd.data.ordid}]")
+			log(f"\tType..: [{dumpCmd.data.ordtype}]")
+			log(f"\tPrice.: [{dumpCmd.data.price}]")
+
+		else:
+			log(f"Unknow data structure for this cmd type.")
+
+	elif dumpCmd.cmd == CT_CMD_PING:
+		if dumpCmd.cmdtype == CT_TYPE_RESPONSE:
+			log(f"\tReturn........: [{dumpCmd.data.ret}]")
+			log(f"\tReturn message: [{dumpCmd.data.retmsg}]")
+
+		elif dumpCmd.cmdtype == CT_TYPE_REQUEST:
+			log(f"\tTODO 1...")
+
+		else:
+			log(f"Unknow data structure for this cmd type.")
+
+	elif dumpCmd.cmd == CT_CMD_CANCELORDER:
+		if dumpCmd.cmdtype == CT_TYPE_RESPONSE:
+			log(f"\tReturn........: [{dumpCmd.data.ret}]")
+			log(f"\tReturn message: [{dumpCmd.data.retmsg}]")
+
+		elif dumpCmd.cmdtype == CT_TYPE_REQUEST:
+			log(f"\tTODO 2...")
+
+		else:
+			log(f"Unknow data structure for this cmd type.")
+
+	elif dumpCmd.cmd == CT_CMD_GETOPENORDERS:
+		if dumpCmd.cmdtype == CT_TYPE_RESPONSE:
+			log(f"\tReturn........: [{dumpCmd.data.ret}]")
+			log(f"\tReturn message: [{dumpCmd.data.retmsg}]")
+
+		elif dumpCmd.cmdtype == CT_TYPE_REQUEST:
+			log(f"\tTODO 3...")
+
+		else:
+			log(f"Unknow data structure for this cmd type.")
+
+	else:
+		log(f"Unknow data structure for this cmd.")
+
+
 
 
 '''

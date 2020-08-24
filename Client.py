@@ -15,7 +15,7 @@ import envelop_sendRecv
 import socket
 import BinanceCTProto
 from BinanceCTUtil import getTimeStamp
-from BinanceCTUtil_dumps import dumpCmdReqToLog
+#from BinanceCTUtil_dumps import dumpCmdToLog
 from BinanceCTDB import CT_DB_TYPE_SQLITE, CT_DB_TYPE_POSTGRESQL
 
 from binance.client import Client
@@ -36,23 +36,7 @@ def execCmdCopytradeReq(recv : BinanceCTProto.CT_PROTO = None)->[bool, str, Bina
 	             _resp_timestamp = recv.resp_timestamp, # should be empty (a request..)
 	             _data           = recv.data)
 
-	dumpCmdReqToLog(sendForward, logging)
-
-	'''
-	logging.info(f"Command...........: {BinanceCTProto.CT_CMD_COPYTRADE}")
-	logging.info(f"From..............: {recv.fromto['from']}")
-	logging.info(f"To................: {recv.fromto['to']}")
-	logging.info(f"Type..............: {recv.cmdtype}")
-	logging.info(f"Timestamp.........: {recv.timestamp}")
-	logging.info(f"Response timestamp: {recv.resp_timestamp}")
-
-	logging.info("Data:")
-	logging.info(f"\tSymbol: [{recv.data.symbol}]")
-	logging.info(f"\tSide..: [{recv.data.side}]")
-	logging.info(f"\tId....: [{recv.data.ordid}]")
-	logging.info(f"\tType..: [{recv.data.ordtype}]")
-	logging.info(f"\tPrice.: [{recv.data.price}]")
-	'''
+	BinanceCTProto.dumpCmdToLog(sendForward, logging.info)
 
 	return([True, "Ok", sendForward])
 
