@@ -6,9 +6,8 @@
 from BinanceCTUtil import getTimeStamp
 from sys import exit, argv, stderr
 from os import getpid
-from signal import signal, SIGILL, SIGTRAP, SIGINT, SIGHUP, SIGTERM, SIGSEGV, SIGUSR1
-#from BinanceCTDB import CT_DB, CT_DB_TYPE_SQLITE, CT_DB_TYPE_POSTGRESQL
-import  BinanceCTDB
+from signal import signal, SIGILL, SIGTRAP, SIGINT, SIGHUP, SIGTERM, SIGSEGV, SIGUSR1, SIGPIPE, SIGIO
+import BinanceCTDB
 import BinanceCTProto
 import envelop_sendRecv
 import socket
@@ -24,6 +23,7 @@ def safeExit(num : int = 0):
 	srvDB.DB.commit()
 	srvDB.DB.quit()
 
+	logging.debug(f"Exit with code [{num}]")
 	exit(num)
 
 def execCmdCopytradeReq(recv : BinanceCTProto.CT_PROTO = None)->[bool, str, BinanceCTProto.CT_PROTO, BinanceCTProto.CT_PROTO]: 
@@ -138,14 +138,14 @@ def sendToPUBSUB(pubsock, topic : str = "", msg : str = "")->[bool, str]:
 	return([True, "Ok"])
 
 def sigHandler(signum, frame):
+
 	if signum == SIGUSR1:
 		logging.info('Singal SIGUSR1 received! Normal shutdown returning [0] to shell.\n')
-		logging.shutdown()
-		exit(0)
+		safeExit(0)
+
 	else:
 		logging.info(f'Singal {signum} received! Return [1] to shell.\n')
-		logging.shutdown()
-		exit(1)
+		safeExit(1)
 
 signal(SIGILL , sigHandler)
 signal(SIGTRAP, sigHandler)
@@ -154,8 +154,8 @@ signal(SIGHUP , sigHandler)
 signal(SIGTERM, sigHandler)
 signal(SIGSEGV, sigHandler)
 signal(SIGUSR1, sigHandler)
-#SIGPIPE
-#SIGIO
+signal(SIGPIPE, sigHandler)
+signal(SIGIO, sigHandler)
 
 # --- CFG ---------------------------------
 
@@ -284,13 +284,10 @@ while True:
 	logging.info(f'Connection from [{client}] Msg [{msgRecv}]')
 
 	recv = BinanceCTProto.CT_PROTO()
-	#sendForward = BinanceCTProto.CT_PROTO()
 
 	recv.loadFromNet(msgRecv)
 
 	# here we may place a recv.fromto['from'] validation through a "valid CopyTrade clients" list from config file. at first we will execute from ALL incoming.
-
-#clientMsgRet = "Ok"
 
 	if recv.cmd == BinanceCTProto.CT_CMD_COPYTRADE:
 		logging.info("Received a COPYTRAPE cmd")
@@ -304,7 +301,6 @@ while True:
 				safeExit(1) # TODO: exit proc?
 
 			srvDB.DB.commit()
-			# TODO: clientMsgRet <------- sendResponse
 
 		elif recv.cmdtype == BinanceCTProto.CT_TYPE_RESPONSE:
 			logging.info("A RESPONSE cmd. not yet implemented (maybe... never. only in SrvDataClient).")
@@ -355,9 +351,9 @@ while True:
 			safeExit(1) # TODO: exit proc?
 
 	# sending response to CopyTrade (socket)
+	resp = ""
 	if sendResponse != None:  # allways must be !None, .... but exeCmd...() functions could not does your correct work (these functions returns sendResponse parameters ALWAYS, EVEN IF returns ret = False).
-		resp = f"{pub_topic} {sendResponse.formatToNet()}"
-		conn.sendMsg(resp, len(resp))
+		resp = sendResponse.formatToNet()
 
 	else:
 		sendBadResponse = BinanceCTProto.CT_PROTO(_cmd            = recv.cmd,
@@ -367,11 +363,10 @@ while True:
 		                                          _cmdtype        = BinanceCTProto.CT_TYPE_RESPONSE,
 		                                          _resp_timestamp = recv.timestamp,
 		                                          _data           = BinanceCTProto.CT_PROTO_RESPONSE(BinanceCTProto.CT_PROTO_RESP_BAD_PROTO, "Bad protocol"))
-
 		resp = sendBadResponse.formatToNet()
-		conn.sendMsg(resp, len(resp))
-
 		del sendBadResponse
 
-	del recv
+	conn.sendMsg(resp, len(resp))
+
+	del recv, resp
 	del sendForward, sendResponse
