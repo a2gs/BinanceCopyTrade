@@ -3,16 +3,18 @@
 
 # Andre Augusto Giannotti Scota (https://sites.google.com/view/a2gs/)
 
-from os import getenv
+from os import getenv, getpid
 from sys import exit, argv
 from textwrap import fill
 import configparser
+import logging
 
 import PySimpleGUI as sg
 from binance.client import Client
 from binance.exceptions import BinanceAPIException, BinanceWithdrawException, BinanceRequestException
 
 import BinanceCTDB
+import BinanceCTUtil
 import BinanceCTOrder
 
 if len(argv) != 2:
@@ -111,13 +113,14 @@ def BS_MarginStopLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->
 		eventMSL, valuesMSL = windowMSL.read()
 
 		if eventMSL == 'SEND!':
-			print(f"{windowTitle} - Order Symbol: [{valuesMSL['-SYMBOL-']}] Qtd: [{valuesMSL['-QTD-']}] Stop Prc: [{valuesMSL['-STOP PRICE-']}] Limit Prc: [{valuesMSL['-LIMIT PRICE-']}]")
+			logging.info(f"{windowTitle} - Order Symbol: [{valuesMSL['-SYMBOL-']}] Qtd: [{valuesMSL['-QTD-']}] Stop Prc: [{valuesMSL['-STOP PRICE-']}] Limit Prc: [{valuesMSL['-LIMIT PRICE-']}]")
 
 			if sg.popup_yes_no('CONFIRM?', text_color='yellow', background_color='red') == 'No':
-				print(f'{windowTitle} - CANCELLED!')
+				logging.info(f'{windowTitle} - CANCELLED!')
 				continue
 
 			ret, retMsg = BinanceCTOrder.orderMargin(client,
+			                             logging.info,
 			                             symbOrd = valuesMSL['-SYMBOL-'],
 			                             qtdOrd = valuesMSL['-QTD-'],
 			                             prcOrd = valuesMSL['-STOP PRICE-'],
@@ -135,12 +138,12 @@ def BS_MarginStopLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->
 				return False, f"Erro posting order {retMsg}!"
 
 			if valuesMSL['CB_COPYTRADE'] == True and COPYTRADE_IsEnable() == True:
-				print(f"COPYTRADE: [MARGINSTOPLIMIT | TAKE_PROFIT_LIMIT | {valuesMSL['-SYMBOL-']} | {valuesMSL['-QTD-']} | {valuesMSL['-STOP PRICE-']} | {valuesMSL['-LIMIT PRICE-']} | {clientSide}]")
+				logging.info(f"COPYTRADE: [MARGINSTOPLIMIT | TAKE_PROFIT_LIMIT | {valuesMSL['-SYMBOL-']} | {valuesMSL['-QTD-']} | {valuesMSL['-STOP PRICE-']} | {valuesMSL['-LIMIT PRICE-']} | {clientSide}]")
 
-			print(f'{windowTitle} - CONFIRMED!')
+			logging.info(f'{windowTitle} - CONFIRMED!')
 
 		elif eventMSL == sg.WIN_CLOSED or eventMSL == 'CANCEL':
-			print(f'{windowTitle} - CANCELLED!')
+			logging.info(f'{windowTitle} - CANCELLED!')
 			break
 
 	windowMSL.close()
@@ -163,13 +166,14 @@ def BS_MarginMarket(client, bgcolor = '', windowTitle = '', clientSide = 0)-> bo
 		eventMM, valuesMM = windowMM.read()
 
 		if eventMM == 'SEND!':
-			print(f"{windowTitle} - Order Symbol: [{valuesMM['-SYMBOL-']}] Qtd: [{valuesMM['-QTD-']}]")
+			logging.info(f"{windowTitle} - Order Symbol: [{valuesMM['-SYMBOL-']}] Qtd: [{valuesMM['-QTD-']}]")
 
 			if sg.popup_yes_no('CONFIRM?', text_color='yellow', background_color='red') == 'No':
-				print(f'{windowTitle} - CANCELLED!')
+				logging.info(f'{windowTitle} - CANCELLED!')
 				continue
 
 			ret, msgRet = BinanceCTOrder.orderMargin(client,
+			                             logging.info,
 			                             symbOrd = valuesMM['-SYMBOL-'],
 			                             qtdOrd  = valuesMM['-QTD-'],
 			                             sideOrd = clientSide,
@@ -184,12 +188,12 @@ def BS_MarginMarket(client, bgcolor = '', windowTitle = '', clientSide = 0)-> bo
 				return False, f"Erro placing order! {msgRet}"
 
 			if valuesMM['CB_COPYTRADE'] == True and COPYTRADE_IsEnable() == True:
-				print("Call COPYTRADE...")
+				logging.info("Call COPYTRADE...")
 
-			print(f'{windowTitle} - CONFIRMED!')
+			logging.info(f'{windowTitle} - CONFIRMED!')
 
 		elif eventMM == sg.WIN_CLOSED or eventMM == 'CANCEL':
-			print(f'{windowTitle} - CANCELLED!')
+			logging.info(f'{windowTitle} - CANCELLED!')
 			break
 
 	windowMM.close()
@@ -214,13 +218,14 @@ def BS_MarginLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->[boo
 		eventML, valuesML = windowML.read()
 
 		if eventML == 'SEND!':
-			print(f"{windowTitle} - Order Symbol: [{valuesML['-SYMBOL-']}] Qtd: [{valuesML['-QTD-']}] Price: [{valuesML['-PRICE-']}]")
+			logging.info(f"{windowTitle} - Order Symbol: [{valuesML['-SYMBOL-']}] Qtd: [{valuesML['-QTD-']}] Price: [{valuesML['-PRICE-']}]")
 
 			if sg.popup_yes_no('CONFIRM?', text_color='yellow', background_color='red') == 'No':
-				print(f'{windowTitle} - CANCELLED!')
+				logging.info(f'{windowTitle} - CANCELLED!')
 				continue
 
 			ret, msgRet = BinanceCTOrder.orderMargin(client,
+			                  logging.info,
 			                  symbOrd = valuesML['-SYMBOL-'],
 			                  qtdOrd  = valuesML['-QTD-'],
 			                  prcOrd  = valuesML['-PRICE-'],
@@ -237,12 +242,12 @@ def BS_MarginLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->[boo
 				return False, f"Eror posting order! {msgRet}"
 
 			if valuesML['CB_COPYTRADE'] == True and COPYTRADE_IsEnable() == True:
-				print("Call COPYTRADE...")
+				logging.info("Call COPYTRADE...")
 
-			print(f'{windowTitle} - CONFIRMED!')
+			logging.info(f'{windowTitle} - CONFIRMED!')
 
 		elif eventML == sg.WIN_CLOSED or eventML == 'CANCEL':
-			print(f'{windowTitle} - CANCELLED!')
+			logging.info(f'{windowTitle} - CANCELLED!')
 			break
 
 	windowML.close()
@@ -267,13 +272,14 @@ def BS_SpotStopLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->[ 
 		eventSSL, valuesSSL = windowSSL.read()
 
 		if eventSSL == 'SEND!':
-			print(f"{windowTitle} - Order Symbol: [{valuesSSL['-SYMBOL-']}] Qtd: [{valuesSSL['-QTD-']}] Stop Prc: [{valuesSSL['-STOP PRICE-']}] Limit Prc: [{valuesSSL['-LIMIT PRICE-']}]")
+			logging.info(f"{windowTitle} - Order Symbol: [{valuesSSL['-SYMBOL-']}] Qtd: [{valuesSSL['-QTD-']}] Stop Prc: [{valuesSSL['-STOP PRICE-']}] Limit Prc: [{valuesSSL['-LIMIT PRICE-']}]")
 
 			if sg.popup_yes_no('CONFIRM?', text_color='yellow', background_color='red') == 'No':
-				print(f'{windowTitle} - CANCELLED!')
+				logging.info(f'{windowTitle} - CANCELLED!')
 				continue
 
-			ret, msgRet = BinanceCTOrderO.orderSpotLimit(client,
+			ret, msgRet = BinanceCTOrder.orderSpotLimit(client,
+			                                logging.info,
 			                                symbOrd = valuesSSL['-SYMBOL-'],
 			                                qtdOrd = valuesSSL['-QTD-'],
 			                                prcStopOrd = valuesSSL['-STOP PRICE-'],
@@ -290,12 +296,12 @@ def BS_SpotStopLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->[ 
 				return False, f"Eror posting order! {msgRet}"
 
 			if valuesSSL['CB_COPYTRADE'] == True and COPYTRADE_IsEnable() == True:
-				print("Call COPYTRADE...")
+				logging.info("Call COPYTRADE...")
 
-			print(f'{windowTitle} - CONFIRMED!')
+			logging.info(f'{windowTitle} - CONFIRMED!')
 
 		elif eventSSL == sg.WIN_CLOSED or eventSSL == 'CANCEL':
-			print(f'{windowTitle} - CANCELLED!')
+			logging.info(f'{windowTitle} - CANCELLED!')
 			break
 
 	windowSSL.close()
@@ -318,13 +324,14 @@ def BS_SpotMarket(client, bgcolor = '', windowTitle = '', clientSide = 0)->[bool
 		eventSM, valuesSM = windowSM.read()
 
 		if eventSM == 'SEND!':
-			print(f"{windowTitle} - Order Symbol: [{valuesSM['-SYMBOL-']}] Qtd: [{valuesSM['-QTD-']}]")
+			logging.info(f"{windowTitle} - Order Symbol: [{valuesSM['-SYMBOL-']}] Qtd: [{valuesSM['-QTD-']}]")
 
 			if sg.popup_yes_no('CONFIRM?', text_color='yellow', background_color='red') == 'No':
-				print(f'{windowTitle} - CANCELLED!')
+				logging.info(f'{windowTitle} - CANCELLED!')
 				continue
 
-			ret, msgRet = BinanceCTOrderO.orderSpot(client,
+			ret, msgRet = BinanceCTOrder.orderSpot(client,
+			                logging.info,
 			                symbOrd = valuesSM['-SYMBOL-'],
 			                qtdOrd  = valuesSM['-QTD-'],
 			                sideOrd = clientSide,
@@ -339,12 +346,12 @@ def BS_SpotMarket(client, bgcolor = '', windowTitle = '', clientSide = 0)->[bool
 				return False, f"Erro posting order! {msgRet}"
 
 			if valuesSM['CB_COPYTRADE'] == True and COPYTRADE_IsEnable() == True:
-				print("Call COPYTRADE...")
+				logging.info("Call COPYTRADE...")
 
-			print(f'{windowTitle} - CONFIRMED!')
+			logging.info(f'{windowTitle} - CONFIRMED!')
 
 		elif eventSM == sg.WIN_CLOSED or eventSM == 'CANCEL':
-			print(f'{windowTitle} - CANCELLED!')
+			logging.info(f'{windowTitle} - CANCELLED!')
 			break
 
 	windowSM.close()
@@ -369,13 +376,14 @@ def BS_SpotLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->[bool,
 		eventSL, valuesSL = windowSL.read()
 
 		if eventSL == 'SEND!':
-			print(f"{windowTitle} - Order Symbol: [{valuesSL['-SYMBOL-']}] Qtd: [{valuesSL['-QTD-']}] Price: [{valuesSL['-PRICE-']}]")
+			logging.info(f"{windowTitle} - Order Symbol: [{valuesSL['-SYMBOL-']}] Qtd: [{valuesSL['-QTD-']}] Price: [{valuesSL['-PRICE-']}]")
 
 			if sg.popup_yes_no('CONFIRM?', text_color='yellow', background_color='red') == 'No':
-				print(f'{windowTitle} - CANCELLED!')
+				logging.info(f'{windowTitle} - CANCELLED!')
 				continue
 
 			ret, msgRet = BinanceCTOrder.orderSpot(client,
+			                logging.info,
 			                symbOrd = valuesSL['-SYMBOL-'],
 			                qtdOrd  = valuesSL['-QTD-'],
 			                prcOrd  = valuesSL['-PRICE-'],
@@ -391,12 +399,12 @@ def BS_SpotLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->[bool,
 				return False, f"Erro posting order! {msgRet}"
 
 			if valuesSL['CB_COPYTRADE'] == True and COPYTRADE_IsEnable() == True:
-				print("Call COPYTRADE...")
+				logging.info("Call COPYTRADE...")
 
-			print(f'{windowTitle} - CONFIRMED!')
+			logging.info(f'{windowTitle} - CONFIRMED!')
 
 		elif eventSL == sg.WIN_CLOSED or eventSL == 'CANCEL':
-			print(f'{windowTitle} - CANCELLED!')
+			logging.info(f'{windowTitle} - CANCELLED!')
 			break
 
 	windowSL.close()
@@ -454,16 +462,16 @@ def ListOpenOrders(client)->[bool, str]:
 		pass
 
 	elif eventLOO == 'Delete Margin Order':
-		print("Deleting margin orders:")
+		logging.info("Deleting margin orders:")
 
 		for i in [str(k) for k, v in valuesLOO.items() if v == True]:
 
 			for j2 in openMarginOrders:
 
 				if j2['orderId'] == int(i):
-					ret, msgRet = BinanceCTOrder.cancel_a_margin_order(client, symbOrd = j2['symbol'], ordrid = j2['orderId'])
+					ret, msgRet = BinanceCTOrder.cancel_a_margin_order(client, logging.info, symbOrd = j2['symbol'], ordrid = j2['orderId'])
 					if ret == False:
-						print(f"Erro canceling MARGIN order {j2['orderId']}! {msgRet}")
+						logging.info(f"Erro canceling MARGIN order {j2['orderId']}! {msgRet}")
 
 						windowListOpenOrder.close()
 
@@ -480,16 +488,16 @@ def ListOpenOrders(client)->[bool, str]:
 		pass
 
 	elif eventLOO == 'Delete Spot Order':
-		print("Deleting spot orders:")
+		logging.info("Deleting spot orders:")
 
 		for i in [str(k) for k, v in valuesLOO.items() if v == True]:
 
 			for j1 in openOrders:
 
 				if j1['orderId'] == i:
-					ret, msgRet = cancel_a_BO.spot_order(client, symbOrd = j2['symbol'], ordrid = j2['orderId'])
+					ret, msgRet = BinanceCTOrder.cancel_a_spot_order(client, logging.info, symbOrd = j2['symbol'], ordrid = j2['orderId'])
 					if ret == False:
-						print(f"Erro canceling SPOT order {j1['orderId']}! {msgRet}")
+						logging.info(f"Erro canceling SPOT order {j1['orderId']}! {msgRet}")
 
 						windowListOpenOrder.close()
 
@@ -553,6 +561,42 @@ except Exception as e:
 
 del cfgFile
 
+# --- LOG ---------------------------------
+
+try:
+	logging.basicConfig(filename = ctm_log,
+	                    level    = logging.INFO,
+	                    format   = '%(asctime)s %(message)s',
+	                    datefmt  = '%Y%m%d %H%M%S')
+except:
+	print(f"Erro open log file: [{pub_log}]", file=stderr)
+	exit(1)
+
+# --- PRINT CFG ---------------------------
+
+logging.info(f"Starting at: [{BinanceCTUtil.getTimeStamp()}] PID: [{getpid()}]")
+
+logging.info('Configuration:')
+logging.info(f"Name.....................: [{ctm_name}]")
+logging.info(f"Copy Trade enable........? [{ctm_enable}]")
+logging.info(f"Teheme...................: [{ctm_theme}]")
+
+logging.info(f"Signal Send port.........: [{signalSource_port}]")
+logging.info(f"Signal Send address......: [{signalSource_address}]")
+
+logging.info(f"Binance API..............: [{binance_apikey}]")
+logging.info(f"Binance Recv windows.....: [{binance_recvwindow}]")
+
+logging.info(f"DB Engine................: [{db_engine}]")
+
+if db_engine == BinanceCTDB.CT_DB_TYPE_SQLITE:
+	logging.info(f"DB File..................: [{db_file}]")
+
+elif db_engine == BinanceCTDB.CT_DB_TYPE_POSTGRESQL:
+	logging.info(f"DB User..................: [{db_user}]")
+	logging.info(f"DB Port..................: [{db_port}]")
+	logging.info(f"DB Schema................: [{db_schema}]")
+
 # -----------------------------------------
 
 STATUSBAR_WRAP = 100
@@ -589,19 +633,19 @@ try:
 	client = Client(binance_apikey, binance_sekkey, {"verify": True, "timeout": 20})
 
 except BinanceAPIException as e:
-	print(f"Binance API exception: [{e.status_code} - {e.message}]")
+	logging.info(f"Binance API exception: [{e.status_code} - {e.message}]")
 	exit(1)
 
 except BinanceRequestException as e:
-	print(f"Binance request exception: [{e.status_code} - {e.message}]")
+	logging.info(f"Binance request exception: [{e.status_code} - {e.message}]")
 	exit(1)
 
 except BinanceWithdrawException as e:
-	print(f"Binance withdraw exception: [{e.status_code} - {e.message}]")
+	logging.info(f"Binance withdraw exception: [{e.status_code} - {e.message}]")
 	exit(1)
 
 except Exception as e:
-	print(f"Binance connection error: {e}")
+	logging.info(f"Binance connection error: {e}")
 	exit(1)
 
 sg.theme(ctm_theme)

@@ -27,9 +27,31 @@ def binanceSide(s: str):
 	return ''
 
 # ---------------------------------------------------
+def printPlacedOrder(order, log):
+	log(f"Symbol: [{order['symbol']}]")
+	log(f"\tSide.................: [{order['side']}]")
+	log(f"\tType.................: [{order['type']}]")
+	log(f"\tTransaction Time.....: [{order['transactTime']}]")
+	log(f"\tPrice................: [{order['price']}]")
+	log(f"\tOrig Qtd.............: [{order['origQty']}]")
+	log(f"\tExecuted Qtd.........: [{order['executedQty']}]")
+	log(f"\tCummulative Quote Qtd: [{order['cummulativeQuoteQty']}]")
+	log(f"\tStatus...............: [{order['status']}]")
+	log(f"\tTime In Force........: [{order['timeInForce']}]")
+	log(f"\tOrder Id.............: [{order['orderId']}]")
+	log(f"\tClient Order Id......: [{order['clientOrderId']}]")
 
-def cancel_a_spot_order(client, symbOrd = '', ordrid = 0) -> [bool, str]:
-	print(f"Cancel SPOT Order Id [{ordrid}] with Symbol [{symbOrd}]")
+	if 'fills' not in order:
+		return
+
+	for f in order['fills']:
+		log(f"\t\tPrice...........: [{f['price']}]")
+		log(f"\t\tQty.............: [{f['qty']}]")
+		log(f"\t\tCommission......: [{f['commission']}]")
+		log(f"\t\tCommission Asset: [{f['commissionAsset']}]")
+
+def cancel_a_spot_order(client, log, symbOrd = '', ordrid = 0) -> [bool, str]:
+	log(f"Cancel SPOT Order Id [{ordrid}] with Symbol [{symbOrd}]")
 
 #if BU.askConfirmation() == False:
 #	return True, "Canceled by confirmation!"
@@ -48,24 +70,24 @@ def cancel_a_spot_order(client, symbOrd = '', ordrid = 0) -> [bool, str]:
 	except Exception as e:
 		return False, f"Erro at client.cancel_order(): {e}"
 
-	print(f"Symbol..................: [{cancOrd['symbol']}]")
-	print(f"Original Client Order Id: [{cancOrd['origClientOrderId']}]")
-	print(f"Order Id................: [{cancOrd['orderId']}]")
-	print(f"Order List Id (OCO info): [{cancOrd['orderListId']}]")
-	print(f"Client Order Id.........: [{cancOrd['clientOrderId']}]")
-	print(f"Price...................: [{cancOrd['price']}]")
-	print(f"Original Qtd............: [{cancOrd['origQty']}]")
-	print(f"Executed Qty............: [{cancOrd['executedQty']}]")
-	print(f"Cummulative Quote Qty...: [{cancOrd['cummulativeQuoteQty']}]")
-	print(f"Status..................: [{cancOrd['status']}]")
-	print(f"Time In Force...........: [{cancOrd['timeInForce']}]")
-	print(f"Type....................: [{cancOrd['type']}]")
-	print(f"Side....................: [{cancOrd['side']}]")
+	log(f"Symbol..................: [{cancOrd['symbol']}]")
+	log(f"Original Client Order Id: [{cancOrd['origClientOrderId']}]")
+	log(f"Order Id................: [{cancOrd['orderId']}]")
+	log(f"Order List Id (OCO info): [{cancOrd['orderListId']}]")
+	log(f"Client Order Id.........: [{cancOrd['clientOrderId']}]")
+	log(f"Price...................: [{cancOrd['price']}]")
+	log(f"Original Qtd............: [{cancOrd['origQty']}]")
+	log(f"Executed Qty............: [{cancOrd['executedQty']}]")
+	log(f"Cummulative Quote Qty...: [{cancOrd['cummulativeQuoteQty']}]")
+	log(f"Status..................: [{cancOrd['status']}]")
+	log(f"Time In Force...........: [{cancOrd['timeInForce']}]")
+	log(f"Type....................: [{cancOrd['type']}]")
+	log(f"Side....................: [{cancOrd['side']}]")
 
 	return True, "Ok"
 
-def cancel_a_margin_order(client, symbOrd = '', ordrid = 0) -> [bool, str]:
-	print(f"Cancel Margin Order Id [{ordrid}] with Symbol [{symbOrd}]")
+def cancel_a_margin_order(client, log, symbOrd = '', ordrid = 0) -> [bool, str]:
+	log(f"Cancel Margin Order Id [{ordrid}] with Symbol [{symbOrd}]")
 
 #if BU.askConfirmation() == False:
 #	return True, "Cancelled by Confirmation!"
@@ -86,31 +108,31 @@ def cancel_a_margin_order(client, symbOrd = '', ordrid = 0) -> [bool, str]:
 	except Exception as e:
 		return False, f"Erro at client.cancel_margin_order(): {e}"
 
-	print(f"Symbol..................: [{cancOrd['symbol']}]")
-	print(f"Original Client Order Id: [{cancOrd['origClientOrderId']}]")
-	print(f"OrderId.................: [{cancOrd['orderId']}]")
-	print(f"Client Order Id.........: [{cancOrd['clientOrderId']}]")
-	print(f"Price...................: [{cancOrd['price']}]")
-	print(f"Original Qtd............: [{cancOrd['origQty']}]")
-	print(f"Executed Qty............: [{cancOrd['executedQty']}]")
-	print(f"Cummulative Quote Qty...: [{cancOrd['cummulativeQuoteQty']}]")
-	print(f"Status..................: [{cancOrd['status']}]")
-	print(f"Time In Force...........: [{cancOrd['timeInForce']}]")
-	print(f"Type....................: [{cancOrd['type']}]")
-	print(f"Side....................: [{cancOrd['side']}]")
+	log(f"Symbol..................: [{cancOrd['symbol']}]")
+	log(f"Original Client Order Id: [{cancOrd['origClientOrderId']}]")
+	log(f"OrderId.................: [{cancOrd['orderId']}]")
+	log(f"Client Order Id.........: [{cancOrd['clientOrderId']}]")
+	log(f"Price...................: [{cancOrd['price']}]")
+	log(f"Original Qtd............: [{cancOrd['origQty']}]")
+	log(f"Executed Qty............: [{cancOrd['executedQty']}]")
+	log(f"Cummulative Quote Qty...: [{cancOrd['cummulativeQuoteQty']}]")
+	log(f"Status..................: [{cancOrd['status']}]")
+	log(f"Time In Force...........: [{cancOrd['timeInForce']}]")
+	log(f"Type....................: [{cancOrd['type']}]")
+	log(f"Side....................: [{cancOrd['side']}]")
 
 	return True, 'Ok'
 
 # ---------------------------------------------------
 
-def orderSpotLimit(client, symbOrd = '', qtdOrd = 0, prcOrd = 0.0, prcStopOrd = 0.0, prcStopLimitOrd = 0.0, sideOrd = 0) -> [bool, str]:
+def orderSpotLimit(client, log, symbOrd = '', qtdOrd = 0, prcOrd = 0.0, prcStopOrd = 0.0, prcStopLimitOrd = 0.0, sideOrd = 0) -> [bool, str]:
 
-	print(f"Symbol....: [{symbOrd}]")
-	print(f"Side......: [{sideOrd}]")
-	print(f"Quantity..: [{qtdOrd}]")
-	print(f"Price.....: [{prcOrd}]")
-	print(f"Stop Price: [{prcStopOrd}]")
-	print(f"Limit OCO.: [{prcStopLimitOrd}]")
+	log(f"Symbol....: [{symbOrd}]")
+	log(f"Side......: [{sideOrd}]")
+	log(f"Quantity..: [{qtdOrd}]")
+	log(f"Price.....: [{prcOrd}]")
+	log(f"Stop Price: [{prcStopOrd}]")
+	log(f"Limit OCO.: [{prcStopLimitOrd}]")
 
 #if BU.askConfirmation() == False:
 #	return True, "Cancelled by Confirmation!"
@@ -149,17 +171,17 @@ def orderSpotLimit(client, symbOrd = '', qtdOrd = 0, prcOrd = 0.0, prcStopOrd = 
 	except Expcetion as e:
 		return False, f"Erro create_oco_order generic exception: {e}"
 
-	printPlacedOrder(order)
+	printPlacedOrder(order, log)
 
 	return True, "Ok"
 
-def orderSpot(client, symbOrd = '', qtdOrd = 0, prcOrd = 0.0, sideOrd = 0, typeOrd = 0) ->[bool, str]:
+def orderSpot(client, log, symbOrd = '', qtdOrd = 0, prcOrd = 0.0, sideOrd = 0, typeOrd = 0) ->[bool, str]:
 
-	print(f"Symbol....: [{symbOrd}]")
-	print(f"Side......: [{sideOrd}]")
-	print(f"Quantity..: [{qtdOrd}]")
-	print(f"Price.....: [{prcOrd}]")
-	print(f"Type......: [{typeOrd}]")
+	log(f"Symbol....: [{symbOrd}]")
+	log(f"Side......: [{sideOrd}]")
+	log(f"Quantity..: [{qtdOrd}]")
+	log(f"Price.....: [{prcOrd}]")
+	log(f"Type......: [{typeOrd}]")
 
 #if BU.askConfirmation() == False:
 #	return True, "Cancelled by Confirmation!"
@@ -172,7 +194,7 @@ def orderSpot(client, symbOrd = '', qtdOrd = 0, prcOrd = 0.0, sideOrd = 0, typeO
 	try:
 
 		if getTestOrder() == True:
-			print("TESTING ORDER")
+			log("TESTING ORDER")
 			order = client.create_test_order(symbol      = symbOrd,
 			                                 side        = sideOrd,
 			                                 type        = typeOrd,
@@ -207,30 +229,30 @@ def orderSpot(client, symbOrd = '', qtdOrd = 0, prcOrd = 0.0, sideOrd = 0, typeO
 	except Exception as e:
 		return False, f"Erro order_limit_buy generic exception: {e}"
 
-	printPlacedOrder(order)
+	printPlacedOrder(order, log)
 
 	return True, "Ok"
 
 # ---------------------------------------------------
 
-def buyOCOOrder(client, symb = '', qtd = 0, prc = 0.0, stopprice = 0.0, limit = 0.0) -> bool:
-	print("NOT IMPLEMENTED")
+def buyOCOOrder(client, log, symb = '', qtd = 0, prc = 0.0, stopprice = 0.0, limit = 0.0) -> bool:
+	log("NOT IMPLEMENTED")
 
-def sellOCOOrder(client, symb = '', qtd = 0, prc = 0.0, stopprice = 0.0, limit = 0.0) -> bool:
-	print("NOT IMPLEMENTED")
+def sellOCOOrder(client, log, symb = '', qtd = 0, prc = 0.0, stopprice = 0.0, limit = 0.0) -> bool:
+	log("NOT IMPLEMENTED")
 
 # ---------------------------------------------------
 
-def orderMargin(client, symbOrd = '', sideOrd = 0, typeOrd = 0, qtdOrd = 0, prcOrd = 0.0, prcStop = 0.0, limit = 0.0) ->[bool, str]:
-	print(f"MARGIN Order {typeOrd}")
+def orderMargin(client, log, symbOrd = '', sideOrd = 0, typeOrd = 0, qtdOrd = 0, prcOrd = 0.0, prcStop = 0.0, limit = 0.0) ->[bool, str]:
+	log(f"MARGIN Order {typeOrd}")
 
-	print(f"Symbol....: [{symbOrd}]")
-	print(f"Side......: [{sideOrd}]")
-	print(f"Quantity..: [{qtdOrd}]")
-	print(f"Price.....: [{prcOrd}]")
-	print(f"Stop Price: [{prcStop}]")
-	print(f"Limit OCO.: [{limit}]")
-	print(f"Type......: [{typeOrd}]")
+	log(f"Symbol....: [{symbOrd}]")
+	log(f"Side......: [{sideOrd}]")
+	log(f"Quantity..: [{qtdOrd}]")
+	log(f"Price.....: [{prcOrd}]")
+	log(f"Stop Price: [{prcStop}]")
+	log(f"Limit OCO.: [{limit}]")
+	log(f"Type......: [{typeOrd}]")
 
 #if BU.askConfirmation() == False:
 #	return True, "Cancelled by Confirmation!"
@@ -278,14 +300,14 @@ def orderMargin(client, symbOrd = '', sideOrd = 0, typeOrd = 0, qtdOrd = 0, prcO
 	except Exception as e:
 		return False, f"Erro create_margin_order generic exception: {e}"
 
-	print(f"\tOrder id....: [{order['orderId']}]")
-	print(f"\tSymbol......: [{order['symbol']}]")
-	print(f"\tPrice.......: [{order['price']}]")
-	print(f"\tQtd.........: [{order['origQty']}]")
-	print(f"\tQtd executed: [{order['executedQty']}]")
-	print(f"\tSide........: [{order['side']}]")
-	print(f"\tType........: [{order['type']}]")
-	print(f"\tStop price..: [{order['stopPrice']}]")
-	print(f"\tIs working..? [{order['isWorking']}]")
+	log(f"\tOrder id....: [{order['orderId']}]")
+	log(f"\tSymbol......: [{order['symbol']}]")
+	log(f"\tPrice.......: [{order['price']}]")
+	log(f"\tQtd.........: [{order['origQty']}]")
+	log(f"\tQtd executed: [{order['executedQty']}]")
+	log(f"\tSide........: [{order['side']}]")
+	log(f"\tType........: [{order['type']}]")
+	log(f"\tStop price..: [{order['stopPrice']}]")
+	log(f"\tIs working..? [{order['isWorking']}]")
 
 	return True, "Ok"
