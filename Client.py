@@ -221,7 +221,8 @@ while True:
 		ret, retmsg, sendForward = execCmdGetOpenOrdersReq(recv)
 
 	else:
-		logging.info(f"Unknow protocol: [{recv.formatToNet()}]")
+		ret, retmsg = recv.formatToNet()
+		logging.info(f"Unknow protocol: [{retmsg}]")
 		#TODO: DUMP THIS MSG
 
 	msg = "Got trade!"

@@ -47,7 +47,7 @@ class CT_PROTO:
 		self.resp_timestamp = _resp_timestamp
 		self.data           = _data
 
-	def formatToNet(self)->str:
+	def formatToNet(self)->[bool, str]:
 
 		msg = {
 			'cmd' : self.cmd,
@@ -62,36 +62,40 @@ class CT_PROTO:
 
 		msg['data'] = {}
 
-		if self.cmd == CT_CMD_COPYTRADE:
-			if msg['type'] == CT_TYPE_REQUEST:
-				msg['data']['symbol']  = self.data.symbol
-				msg['data']['side']    = self.data.side
-				msg['data']['ordid']   = self.data.ordid
-				msg['data']['ordtype'] = self.data.ordtype
-				msg['data']['price']   = self.data.price
+		try:
+			if self.cmd == CT_CMD_COPYTRADE:
+				if msg['type'] == CT_TYPE_REQUEST:
+					msg['data']['symbol']  = self.data.symbol
+					msg['data']['side']    = self.data.side
+					msg['data']['ordid']   = self.data.ordid
+					msg['data']['ordtype'] = self.data.ordtype
+					msg['data']['price']   = self.data.price
 
-			elif msg['type'] == CT_TYPE_RESPONSE:
-				msg['data']['ret']    = self.data.ret
-				msg['data']['retmsg'] = self.data.retmsg
+				elif msg['type'] == CT_TYPE_RESPONSE:
+					msg['data']['ret']    = self.data.ret
+					msg['data']['retmsg'] = self.data.retmsg
 
-		elif self.cmd == CT_CMD_CANCELORDER:
-			if msg['type'] == CT_TYPE_REQUEST:
-				msg['data'] = { 'server_order_id' : self.data.server_order_id }
+			elif self.cmd == CT_CMD_CANCELORDER:
+				if msg['type'] == CT_TYPE_REQUEST:
+					msg['data'] = { 'server_order_id' : self.data.server_order_id }
 
-			elif msg['type'] == CT_TYPE_RESPONSE:
-				msg['data']['ret']    = self.data.ret
-				msg['data']['retmsg'] = self.data.retmsg
+				elif msg['type'] == CT_TYPE_RESPONSE:
+					msg['data']['ret']    = self.data.ret
+					msg['data']['retmsg'] = self.data.retmsg
 
-		elif self.cmd == CT_CMD_GETOPENORDERS:
-			if msg['type'] == CT_TYPE_REQUEST:
-				msg['data'] = { 'openorders' : [] }
-				[msg['data']['openorders'].append(i.element) for i in self.data.open_orders]
+			elif self.cmd == CT_CMD_GETOPENORDERS:
+				if msg['type'] == CT_TYPE_REQUEST:
+					msg['data'] = { 'openorders' : [] }
+					[msg['data']['openorders'].append(i.element) for i in self.data.open_orders]
 
-			elif msg['type'] == CT_TYPE_RESPONSE:
-				msg['data']['ret']    = self.data.ret
-				msg['data']['retmsg'] = self.data.retmsg
+				elif msg['type'] == CT_TYPE_RESPONSE:
+					msg['data']['ret']    = self.data.ret
+					msg['data']['retmsg'] = self.data.retmsg
 
-		return json.dumps(msg)
+		except Exception as e:
+			return([False, "{e}"])
+
+		return([True, json.dumps(msg)])
 
 	def loadFromNet(self, msgRecv):
 		jsonDump = json.loads(msgRecv)

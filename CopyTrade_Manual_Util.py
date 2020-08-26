@@ -30,10 +30,10 @@ def setSrvSendInformation(address : str = "", port : int = 0, me : str = ""):
 	srvSendPort    = port
 	meName         = me
 
-def sendOrderToSrvSend(symb : str = "", side : str = "",
-                       qtd : str = "", price : str = "",
+def sendOrderToSrvSend(symb : str = "",      side : str = "",
+                       qtd : str = "",       price : str = "",
                        priceStop : str = "", priceLimit : str = "",
-                       typeOrd : str = "", orderCTId : str = "", log = None)->[bool, str]:
+                       typeOrd : str = "",   orderCTId : str = "")->[bool, str]:
 
 	orderToSendData = BinanceCTProto.CT_PROTO_COPYTRADE_DATA(_symbol = symb, _side = side,
 	                                                         _ordid = orderCTId, _ordtype = typeOrd,
@@ -47,13 +47,15 @@ def sendOrderToSrvSend(symb : str = "", side : str = "",
 	                                      _resp_timestamp = "",
 	                                      _data           = orderToSendData)
 
-	msg = orderToSend.formatToNet()
+	ret, msgret = orderToSend.formatToNet()
+	if ret == False:
+		return([False, msgret])
 
 	con = envelop_sendRecv.connection()
 
 	ret, retmsg = con.connectToServer(srvSendAddress, srvSendPort, socket.AF_INET, socket.SOCK_STREAM)
 	if ret == False:
-		return(False, f"Connect to server error: {retmsg}")
+		return([False, f"Connect to server error: {retmsg}"])
 
 	ret, retmsg = con.sendMsg(msg, len(msg))
 	if ret == False:
@@ -66,11 +68,13 @@ def sendOrderToSrvSend(symb : str = "", side : str = "",
 	orderRecv = BinanceCTProto.CT_PROTO()
 	orderRecv.loadFromNet(msgRecv)
 
-	log(f'Sent: [{msg}]')
-	BinanceCTProto.dumpCmdToLog(orderToSend, log)
+	logging.info(f'Sent: [{msg}]')
+	BinanceCTProto.dumpCmdToLog(orderToSend, logging.info)
 
-	log(f'Received: [{msgRecv}]')
-	BinanceCTProto.dumpCmdToLog(orderRecv, log)
+	logging.info(f'Received: [{msgRecv}]')
+	BinanceCTProto.dumpCmdToLog(orderRecv, logging.info)
+
+	return([True, "Ok"])
 
 def printAccountInfo(client)->[bool, str]:
 
@@ -189,7 +193,12 @@ def BS_MarginStopLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->
 				return([False, f"Erro posting order {retMsg}!"])
 
 			if valuesMSL['CB_COPYTRADE'] == True:
-				logging.info(f"COPYTRADE: [MARGINSTOPLIMIT | TAKE_PROFIT_LIMIT | {valuesMSL['-SYMBOL-']} | {valuesMSL['-QTD-']} | {valuesMSL['-STOP PRICE-']} | {valuesMSL['-LIMIT PRICE-']} | {clientSide}]")
+				ret, retmsg = sendOrderToSrvSend(symb = symbOrd,      side = sideOrd,
+				                                 qtd = qtdOrd,        price = prcOrd,
+				                                 priceStop = prcStop, priceLimit = limit,
+				                                 typeOrd = typeOrd,   orderCTId = orderId)
+				if ret == False:
+					logging.warning(f"The Order ID could not be sent to SrvSend [{orderId}] [{retmsg}]!")
 
 			logging.info(f'{windowTitle} - CONFIRMED!')
 
@@ -239,7 +248,12 @@ def BS_MarginMarket(client, bgcolor = '', windowTitle = '', clientSide = 0)->[bo
 				return([False, f"Erro placing order! {msgRet}"])
 
 			if valuesMM['CB_COPYTRADE'] == True:
-				logging.info("Call COPYTRADE...")
+				ret, retmsg = sendOrderToSrvSend(symb = symbOrd,      side = sideOrd,
+				                                 qtd = qtdOrd,        price = prcOrd,
+				                                 priceStop = prcStop, priceLimit = limit,
+				                                 typeOrd = typeOrd,   orderCTId = orderId)
+				if ret == False:
+					logging.warning(f"The Order ID could not be sent to SrvSend [{orderId}] [{retmsg}]!")
 
 			logging.info(f'{windowTitle} - CONFIRMED!')
 
@@ -293,7 +307,12 @@ def BS_MarginLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->[boo
 				return([False, f"Eror posting order! {msgRet}"])
 
 			if valuesML['CB_COPYTRADE'] == True:
-				logging.info("Call COPYTRADE...")
+				ret, retmsg = sendOrderToSrvSend(symb = symbOrd,      side = sideOrd,
+				                                 qtd = qtdOrd,        price = prcOrd,
+				                                 priceStop = prcStop, priceLimit = limit,
+				                                 typeOrd = typeOrd,   orderCTId = orderId)
+				if ret == False:
+					logging.warning(f"The Order ID could not be sent to SrvSend [{orderId}] [{retmsg}]!")
 
 			logging.info(f'{windowTitle} - CONFIRMED!')
 
@@ -347,7 +366,12 @@ def BS_SpotStopLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->[b
 				return([False, f"Eror posting order! {msgRet}"])
 
 			if valuesSSL['CB_COPYTRADE'] == True:
-				logging.info("Call COPYTRADE...")
+				ret, retmsg = sendOrderToSrvSend(symb = symbOrd,      side = sideOrd,
+				                                 qtd = qtdOrd,        price = prcOrd,
+				                                 priceStop = prcStop, priceLimit = limit,
+				                                 typeOrd = typeOrd,   orderCTId = orderId)
+				if ret == False:
+					logging.warning(f"The Order ID could not be sent to SrvSend [{orderId}] [{retmsg}]!")
 
 			logging.info(f'{windowTitle} - CONFIRMED!')
 
@@ -397,7 +421,12 @@ def BS_SpotMarket(client, bgcolor = '', windowTitle = '', clientSide = 0)->[bool
 				return([False, f"Erro posting order! {msgRet}"])
 
 			if valuesSM['CB_COPYTRADE'] == True:
-				logging.info("Call COPYTRADE...")
+				ret, retmsg = sendOrderToSrvSend(symb = symbOrd,      side = sideOrd,
+				                                 qtd = qtdOrd,        price = prcOrd,
+				                                 priceStop = prcStop, priceLimit = limit,
+				                                 typeOrd = typeOrd,   orderCTId = orderId)
+				if ret == False:
+					logging.warning(f"The Order ID could not be sent to SrvSend [{orderId}] [{retmsg}]!")
 
 			logging.info(f'{windowTitle} - CONFIRMED!')
 
@@ -450,7 +479,12 @@ def BS_SpotLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->[bool,
 				return([False, f"Erro posting order! {msgRet}"])
 
 			if valuesSL['CB_COPYTRADE'] == True:
-				logging.info("Call COPYTRADE...")
+				ret, retmsg = sendOrderToSrvSend(symb = symbOrd,      side = sideOrd,
+				                                 qtd = qtdOrd,        price = prcOrd,
+				                                 priceStop = prcStop, priceLimit = limit,
+				                                 typeOrd = typeOrd,   orderCTId = orderId)
+				if ret == False:
+					logging.warning(f"The Order ID could not be sent to SrvSend [{orderId}] [{retmsg}]!")
 
 			logging.info(f'{windowTitle} - CONFIRMED!')
 

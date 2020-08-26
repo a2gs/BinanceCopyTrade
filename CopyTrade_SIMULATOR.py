@@ -36,6 +36,9 @@ del cfgFile
 # --- SAMPLE 1 -------------------
 print("--- SAMPLE 1 -------------------")
 
+#import pudb
+#pudb.set_trace()
+
 con = envelop_sendRecv.connection()
 ret, msgret = con.connectToServer(ctm_signalSource_address, int(ctm_signalSource_port), socket.AF_INET, socket.SOCK_STREAM)
 if ret == False:
@@ -54,18 +57,29 @@ copytrade_sample1.data = BinanceCTProto.CT_PROTO_COPYTRADE_DATA(_symbol = "BTCUS
                                                                 _ordid = "1234567890", _ordtype = "LIMIT",
                                                                 _price = "10.10101010")
 
-msg = copytrade_sample1.formatToNet()
+print("aqui1")
+ret, msg = copytrade_sample1.formatToNet()
+if ret == False:
+	print(f"Error formatToNet: [{msg}]")
+	exit(1)
+print("aqui2")
 
 con.sendMsg(msg, len(msg))
+
+print("aqui2.5")
 ret, retmsg, msgRecv = con.recvMsg()
 if ret == False:
 	print(f"Error: [{retmsg}]")
 	exit(1)
 
+print("aqui3")
 con.endClient()
 
+print("aqui4")
 copytrade_sample1_resp = BinanceCTProto.CT_PROTO()
 copytrade_sample1_resp.loadFromNet(msgRecv)
+
+print("aqui5")
 
 print('Sent:')
 BinanceCTProto.dumpCmdToLog(copytrade_sample1, print)
@@ -90,7 +104,11 @@ cancelorder_sample1.response_timestamp = ""
 
 cancelorder_sample1.data = BinanceCTProto.CT_PROTO_CANCELORDER_DATA(_server_order_id  = 666)
 
-msg = cancelorder_sample1.formatToNet()
+ret, msg = cancelorder_sample1.formatToNet()
+if ret == False:
+	print(f"Error formatToNet: [{retmsg}]")
+	exit(1)
+
 con.sendMsg(msg, len(msg))
 ret, retmsg, msgRecv = con.recvMsg()
 if ret == False:
@@ -138,7 +156,10 @@ getopenorders_sample1.data.open_orders.append(ordAAA)
 getopenorders_sample1.data.open_orders.append(ordBBB)
 getopenorders_sample1.data.open_orders.append(ordCCC)
 
-msg = getopenorders_sample1.formatToNet()
+ret, msg = getopenorders_sample1.formatToNet()
+if ret == False:
+	print(f"Error formatToNet: [{retmsg}]")
+	exit(1)
 
 con.sendMsg(msg, len(msg))
 ret, retmsg, msgRecv = con.recvMsg()

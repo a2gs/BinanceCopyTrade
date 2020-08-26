@@ -340,11 +340,20 @@ while True:
 			safeExit(1, f"Error execCmdGetOpenOrdersReq() [{retmsg}]!") # TODO: exit proc?
 
 	else:
-		logging.info(f"Unknow protocol: [{recv.formatToNet()}]")
+		ret, retmsg = recv.formatToNet()
+		if ret == False:
+			logging.info(f"Unknow protocol/format: [{msgRecv}]")
+		else:
+			logging.info(f"Unknow protocol: [{retmsg}]")
 
 	# sending to PUBSUB clients
 	if sendForward != None:  # if None, there is nothing to forwarda (not everything should go to pubsub)
-		ret, retmsg = sendToPUBSUB(pub_socket, pub_topic, sendForward.formatToNet()) 
+		retfmt, retmsgfmt = sendForward.formatToNet()
+		if retfmt == False:
+			srvDB.DB.rollback()
+			safeExit(1, f"Error formatToNet() to PUBSUB [{retmsgfmt}]!") # TODO: exit proc?
+
+		ret, retmsg = sendToPUBSUB(pub_socket, pub_topic, retmsgfmt)
 
 		logging.info(f"SENT TO PUBSUB [{pub_topic}]:")
 		BinanceCTProto.dumpCmdToLog(sendForward, logging.info)
@@ -356,7 +365,10 @@ while True:
 	# sending response to CopyTrade (socket)
 	resp = ""
 	if sendResponse != None:  # allways must be !None, .... but exeCmd...() functions could not does your correct work (these functions returns sendResponse parameters ALWAYS, EVEN IF returns ret = False).
-		resp = sendResponse.formatToNet()
+		ret, resp = sendResponse.formatToNet()
+		if ret == False:
+			srvDB.DB.rollback()
+			safeExit(1, f"Error formatToNet() to CopyTrade [{resp}]!") # TODO: exit proc?
 
 		logging.info("SENT TO SOCKET:")
 		BinanceCTProto.dumpCmdToLog(sendResponse, logging.info)
@@ -368,7 +380,10 @@ while True:
 		                                          _cmdtype        = BinanceCTProto.CT_TYPE_RESPONSE,
 		                                          _resp_timestamp = recv.timestamp,
 		                                          _data           = BinanceCTProto.CT_PROTO_RESPONSE(BinanceCTProto.CT_PROTO_RESP_BAD_PROTO, "Bad protocol"))
-		resp = sendBadResponse.formatToNet()
+		ret, resp = sendResponse.formatToNet()
+		if ret == False:
+			srvDB.DB.rollback()
+			safeExit(1, f"Error bad formatToNet() to CopyTrade [{resp}]!") # TODO: exit proc?
 
 		logging.info("SENT TO COPYTRADE:")
 		BinanceCTProto.dumpCmdToLog(sendBadResponse, logging.info)
@@ -376,5 +391,7 @@ while True:
 
 	con.sendMsg(resp, len(resp))
 
-	del recv, resp
-	del sendForward, sendResponse
+	del recv
+	del resp
+	del sendForward
+	del sendResponse
