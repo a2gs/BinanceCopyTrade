@@ -14,6 +14,7 @@ import logging
 import envelop_sendRecv
 import socket
 import BinanceCTProto
+
 from BinanceCTUtil import getTimeStamp
 from BinanceCTDB import CT_DB_TYPE_SQLITE, CT_DB_TYPE_POSTGRESQL
 
@@ -23,6 +24,21 @@ from binance.exceptions import BinanceAPIException, BinanceWithdrawException, Bi
 if len(argv) != 2:
 	print(f"Usage:\n\t{argv[0]} CFG_FILE.cfg")
 	exit(1)
+
+con = None   # Socket: signal data client
+cliDB = None # Database handle
+
+def safeExit(num : int = 0, msg : str = ""):
+
+	if srvDB != None:
+		srvDB.DB.commit()
+		srvDB.DB.quit()
+
+	if msg == "":
+		logging.info(msg)
+
+	logging.info(f"Exit with code [{num}]")
+	exit(num)
 
 def execCmdCopytradeReq(recv : BinanceCTProto.CT_PROTO = None)->[bool, str, BinanceCTProto.CT_PROTO]: 
 
@@ -224,7 +240,7 @@ while True:
 
 	ret, retmsg, msgRecv = con.recvMsg()
 	if ret == False:
-		logging.info(f"Error: [{retmsg}]")
+		logging.info(f"Error msgRecv: [{retmsg}]")
 		exit(1)
 
 	logging.info(f'Sent: [{msg}] | Received: [{msgRecv}]')

@@ -19,11 +19,19 @@ if len(argv) != 2:
 	print(f"Usage:\n\t{argv[0]} CFG_FILE.cfg")
 	exit(1)
 
-def safeExit(num : int = 0):
-	srvDB.DB.commit()
-	srvDB.DB.quit()
+con   = None # Socket: signal source
+srvDB = None # Database handle
 
-	logging.debug(f"Exit with code [{num}]")
+def safeExit(num : int = 0, msg : str = ""):
+
+	if srvDB != None:
+		srvDB.DB.commit()
+		srvDB.DB.quit()
+
+	if msg == "":
+		logging.info(msg)
+
+	logging.info(f"Exit with code [{num}]")
 	exit(num)
 
 def execCmdCopytradeReq(recv : BinanceCTProto.CT_PROTO = None)->[bool, str, BinanceCTProto.CT_PROTO, BinanceCTProto.CT_PROTO]: 
@@ -237,8 +245,7 @@ if ret == False:
 
 ret, retmsg = srvDB.DB.createTablesIfNotExist()
 if ret == False:
-	logging.info(f"Error creating tables: [{retmsg}]")
-	safeExit(1)
+	safeExit(1, f"Error creating tables: [{retmsg}]")
 
 # --- PUB/SUB -----------------------------
 
@@ -248,22 +255,19 @@ pub_socket.bind(pub_address)
 
 # --- SOCKET ------------------------------
 
-conn = envelop_sendRecv.connection()
+con = envelop_sendRecv.connection()
 
-ret, retmsg = conn.serverLoad(socket.AF_INET, socket.SOCK_STREAM)
+ret, retmsg = con.serverLoad(socket.AF_INET, socket.SOCK_STREAM)
 if ret == False:
-	logging.info(f"Erro loading server: [{retmsg}]!")
-	safeExit(1)
+	safeExit(1, f"Erro loading server: [{retmsg}]!")
 
-ret, retmsg = conn.sockOpts(socket.SO_REUSEADDR)
+ret, retmsg = con.sockOpts(socket.SO_REUSEADDR)
 if ret == False:
-	logging.info(f"Erro sockOpts server: [{retmsg}]!")
-	safeExit(1)
+	safeExit(1, f"Erro sockOpts server: [{retmsg}]!")
 
-ret, retmsg = conn.serverBindListen(int(signalSource_port), int(signalSource_maxconn))
+ret, retmsg = con.serverBindListen(int(signalSource_port), int(signalSource_maxconn))
 if ret == False:
-	logging.info(f"Erro binding server: [{retmsg}]!")
-	safeExit(1)
+	safeExit(1, f"Erro binding server: [{retmsg}]!")
 
 # -----------------------------------------
 
@@ -271,15 +275,13 @@ while True:
 
 	logging.info('Waiting connections..')
 
-	ret, msgret, client = conn.serverAccept()
+	ret, msgret, client = con.serverAccept()
 	if ret == False:
-		logging.info(f'Connection error: [{msgret}].')
-		safeExit(1)
+		safeExit(1, f"Connection error: [{msgret}]")
 
-	ret, retmsg, msgRecv = conn.recvMsg()
+	ret, retmsg, msgRecv = con.recvMsg()
 	if ret == False:
-		print(f"Error: [{retmsg}]")
-		safeExit(1)
+		safeExit(1, f"Error recvMsg: [{retmsg}]")
 
 	recv = BinanceCTProto.CT_PROTO()
 
@@ -298,9 +300,8 @@ while True:
 		if recv.cmdtype == BinanceCTProto.CT_TYPE_REQUEST:
 			ret, retmsg, sendForward, sendResponse = execCmdCopytradeReq(recv)
 			if ret == False:
-				logging.info(f"Error execCmdCopytradeReq() [{retmsg}]!")
 				srvDB.DB.rollback()
-				safeExit(1) # TODO: exit proc?
+				safeExit(1, f"Error execCmdCopytradeReq() [{retmsg}]!") # TODO: exit proc?
 
 			srvDB.DB.commit()
 
@@ -321,25 +322,22 @@ while True:
 		logging.info("PING!")
 		ret, retmsg, sendForward, sendResponse = execCmdPingReq(recv)
 		if ret == False:
-			logging.info(f"Error execCmdPingReq() [{retmsg}]!")
 			srvDB.DB.rollback()
-			safeExit(1) # TODO: exit proc?
+			safeExit(1, f"Error execCmdPingReq() [{retmsg}]!") # TODO: exit proc?
 
 	elif recv.cmd == BinanceCTProto.CT_CMD_CANCELORDER:
 
 		ret, retmsg, sendForward, sendResponse = execCmdCancelOrderReq(recv)
 		if ret == False:
-			logging.info(f"Error execCncelOrderReq() [{retmsg}]!")
 			srvDB.DB.rollback()
-			safeExit(1) # TODO: exit proc?
+			safeExit(1, f"Error execCncelOrderReq() [{retmsg}]!") # TODO: exit proc?
 
 	elif recv.cmd == BinanceCTProto.CT_CMD_GETOPENORDERS:
 
 		ret, retmsg, sendForward, sendResponse = execCmdGetOpenOrdersReq(recv)
 		if ret == False:
-			logging.info(f"Error execCmdGetOpenOrdersReq() [{retmsg}]!")
 			srvDB.DB.rollback()
-			safeExit(1) # TODO: exit proc?
+			safeExit(1, f"Error execCmdGetOpenOrdersReq() [{retmsg}]!") # TODO: exit proc?
 
 	else:
 		logging.info(f"Unknow protocol: [{recv.formatToNet()}]")
@@ -352,9 +350,8 @@ while True:
 		BinanceCTProto.dumpCmdToLog(sendForward, logging.info)
 
 		if ret == False:
-			logging.info(f"Error sendToPUBSUB() [{retmsg}]!")
 			srvDB.DB.rollback()
-			safeExit(1) # TODO: exit proc?
+			safeExit(1, f"Error sendToPUBSUB() [{retmsg}]!") # TODO: exit proc?
 
 	# sending response to CopyTrade (socket)
 	resp = ""
@@ -377,7 +374,7 @@ while True:
 		BinanceCTProto.dumpCmdToLog(sendBadResponse, logging.info)
 		del sendBadResponse
 
-	conn.sendMsg(resp, len(resp))
+	con.sendMsg(resp, len(resp))
 
 	del recv, resp
 	del sendForward, sendResponse

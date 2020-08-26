@@ -15,512 +15,26 @@ from binance.exceptions import BinanceAPIException, BinanceWithdrawException, Bi
 
 import BinanceCTDB
 import BinanceCTUtil
-import BinanceCTOrder
+import CopyTrade_Manual_Util
 
 if len(argv) != 2:
 	print(f"Usage:\n\t{argv[0]} CFG_FILE.cfg")
 	exit(1)
 
-def printAccountInfo(client)->[bool, str]:
+con   = None # Socket: signal source
+ctmDB = None # Database handle
 
-	def printAccount(accBalance)->str:
-		return f"Asset balance [{accBalance['asset']}] | Free [{accBalance['free']}] | Locked [{accBalance['locked']}]"
+def safeExit(num : int = 0, msg : str = ""):
 
-	def printMarginAssets(asset, seq = 0)->str:
-		return f"{seq}) Asset: [{asset['asset']}]\n\tBorrowed.: [{asset['borrowed']}]\n\tFree.....: [{asset['free']}]\n\tLocked...: [{asset['locked']}]\n\tNet asset: [{asset['netAsset']}]\n"
+	if ctmDB != None:
+		ctmDB.DB.commit()
+		ctmDB.DB.quit()
 
-	try:
-		acc = client.get_account()
-	except BinanceAPIException as e:
-		return False, f"Erro at client.get_account() BinanceAPIException: [{e.status_code} - {e.message}]"
-	except BinanceRequestException as e:
-		return False, f"Erro at client.get_account() BinanceRequestException: [{e.status_code} - {e.message}]"
-	except Exception as e:
-		return False, f"Erro at client.get_account(): {e}"
+	if msg != "":
+		logging.info(msg)
 
-	try:
-		accStatus = client.get_account_status()
-	except BinanceWithdrawException as e:
-		return False, f"Erro at client.get_account_status() BinanceWithdrawException: [{e.status_code} - {e.message}]"
-	except Exception as e:
-		return False, f"Erro at client.get_account_status(): {e}"
-
-	totalinfos = f"Can trade............? [{acc['canTrade']}]\n"
-	totalinfos += f"Can withdraw.........? [{acc['canWithdraw']}]\n"
-	totalinfos += f"Can deposit..........? [{acc['canDeposit']}]\n"
-	totalinfos += f"Account type.........: [{acc['accountType']}]\n"
-	totalinfos += f"Account status detail: [{accStatus['msg']}] Success: [{accStatus['success']}]\n"
-	totalinfos += f"Commissions..........: Maker: [{acc['makerCommission']}] | Taker: [{acc['takerCommission']}] | Buyer: [{acc['buyerCommission']}] | Seller: [{acc['sellerCommission']}]\n\n"
-
-	totalinfos += "Balances:\n"
-	if len(acc['balances']) != 0:
-		totalinfos += '\n'.join([printAccount(n) for n in acc['balances'] if float(n['free']) != 0.0 or float(n['locked']) != 0.0]) + '\n\n'
-	else:
-		totalinfos += 'Zero.\n\n'
-
-	totalinfos += "Margin accoutn information:\n"
-	try:
-		marginInfo = client.get_margin_account()
-	except BinanceRequestException as e:
-		return False, f"Erro at client.get_margin_account() BinanceRequestException: [{e.status_code} - {e.message}]"
-	except BinanceAPIException as e:
-		return False, f"Erro at client.get_margin_account() BinanceAPIException: [{e.status_code} - {e.message}]"
-	except Exception as e:
-		return False, f"Erro at client.get_margin_account(): {e}"
-
-	cleanedMarginAssets = [n for n in marginInfo['userAssets'] if float(n['netAsset']) != 0.0]
-
-	totalinfos += f"Borrow Enabled........? [{marginInfo['borrowEnabled']}]\n"
-	totalinfos += f"Trade enabled.........? [{marginInfo['tradeEnabled']}]\n"
-	totalinfos += f"Level.................: [{marginInfo['marginLevel']}]\n"
-	totalinfos += f"Total asset of BTC....: [{marginInfo['totalAssetOfBtc']}]\n"
-	totalinfos += f"Total liability of BTC: [{marginInfo['totalLiabilityOfBtc']}]\n"
-	totalinfos += f"Total Net asset of BTC: [{marginInfo['totalNetAssetOfBtc']}]\n\n"
-
-	totalinfos += 'Borrowed assets:\n'
-	totalinfos += '\n'.join ([printMarginAssets(n, i) for i, n in enumerate(cleanedMarginAssets, 1)])
-
-	layoutAccInfo = [[sg.Multiline(totalinfos, key='-INFOMLINE-' + sg.WRITE_ONLY_KEY, size=(100,25), font='Courier 10', disabled=True)], [sg.Button('Ok')]]
-
-	windowInfoAcc = sg.Window("Acc Infos", layoutAccInfo).Finalize()
-	eventInfoAcc, valuesInfoAcc = windowInfoAcc.read()
-
-	windowInfoAcc.close()
-
-	del totalinfos
-	del acc
-	del accStatus
-	del marginInfo
-	del cleanedMarginAssets
-	del windowInfoAcc
-	del layoutAccInfo
-
-	return True, "Ok"
-
-def BS_MarginStopLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->[bool, str]:
-	layoutMSL = [
-		[sg.Text('Symbol: ', background_color = bgcolor), sg.InputText(key = '-SYMBOL-')],
-		[sg.Text('Qtd: ', background_color = bgcolor), sg.InputText(key = '-QTD-')],
-		[sg.Text('Stop Price: ', background_color = bgcolor), sg.InputText(key = '-STOP PRICE-')],
-		[sg.Text('Limit Price: ', background_color = bgcolor), sg.InputText(key = '-LIMIT PRICE-')],
-		[sg.Checkbox('send to CopyTrade', key='CB_COPYTRADE', default=True)],
-		[sg.Button('SEND!'), sg.Button('CANCEL')],
-	]
-
-	windowMSL = sg.Window(windowTitle, layoutMSL, background_color = bgcolor).Finalize()
-
-	while True:
-		eventMSL, valuesMSL = windowMSL.read()
-
-		if eventMSL == 'SEND!':
-			logging.info(f"{windowTitle} - Order Symbol: [{valuesMSL['-SYMBOL-']}] Qtd: [{valuesMSL['-QTD-']}] Stop Prc: [{valuesMSL['-STOP PRICE-']}] Limit Prc: [{valuesMSL['-LIMIT PRICE-']}]")
-
-			if sg.popup_yes_no('CONFIRM?', text_color='yellow', background_color='red') == 'No':
-				logging.info(f'{windowTitle} - CANCELLED!')
-				continue
-
-			ret, retMsg = BinanceCTOrder.orderMargin(client,
-			                             logging.info,
-			                             symbOrd = valuesMSL['-SYMBOL-'],
-			                             qtdOrd = valuesMSL['-QTD-'],
-			                             prcOrd = valuesMSL['-STOP PRICE-'],
-			                             prcStop = valuesMSL['-LIMIT PRICE-'],
-			                             sideOrd = clientSide,
-			                             typeOrd = "TAKE_PROFIT_LIMIT",
-			                             limit = 0.0 )
-			if ret == False:
-				sg.popup('ERRO! Order didnt post!')
-
-				windowMSL.close()
-				del windowMSL
-				del layoutMSL
-
-				return False, f"Erro posting order {retMsg}!"
-
-			if valuesMSL['CB_COPYTRADE'] == True and COPYTRADE_IsEnable() == True:
-				logging.info(f"COPYTRADE: [MARGINSTOPLIMIT | TAKE_PROFIT_LIMIT | {valuesMSL['-SYMBOL-']} | {valuesMSL['-QTD-']} | {valuesMSL['-STOP PRICE-']} | {valuesMSL['-LIMIT PRICE-']} | {clientSide}]")
-
-			logging.info(f'{windowTitle} - CONFIRMED!')
-
-		elif eventMSL == sg.WIN_CLOSED or eventMSL == 'CANCEL':
-			logging.info(f'{windowTitle} - CANCELLED!')
-			break
-
-	windowMSL.close()
-	del windowMSL
-	del layoutMSL
-
-	return True, "Ok"
-
-def BS_MarginMarket(client, bgcolor = '', windowTitle = '', clientSide = 0)-> bool:
-	layoutMM = [
-		[sg.Text('Symbol: ', background_color = bgcolor), sg.InputText(key = '-SYMBOL-')],
-		[sg.Text('Qtd: ', background_color = bgcolor), sg.InputText(key = '-QTD-')],
-		[sg.Checkbox('send to CopyTrade', key='CB_COPYTRADE', default=True)],
-		[sg.Button('SEND!'), sg.Button('CANCEL')],
-	]
-
-	windowMM = sg.Window(windowTitle, layoutMM, background_color = bgcolor).Finalize()
-
-	while True:
-		eventMM, valuesMM = windowMM.read()
-
-		if eventMM == 'SEND!':
-			logging.info(f"{windowTitle} - Order Symbol: [{valuesMM['-SYMBOL-']}] Qtd: [{valuesMM['-QTD-']}]")
-
-			if sg.popup_yes_no('CONFIRM?', text_color='yellow', background_color='red') == 'No':
-				logging.info(f'{windowTitle} - CANCELLED!')
-				continue
-
-			ret, msgRet = BinanceCTOrder.orderMargin(client,
-			                             logging.info,
-			                             symbOrd = valuesMM['-SYMBOL-'],
-			                             qtdOrd  = valuesMM['-QTD-'],
-			                             sideOrd = clientSide,
-			                             typeOrd = Client.ORDER_TYPE_MARKET)
-			if ret == False:
-				sg.popup('ERRO! Order didnt post!')
-
-				windowMM.close()
-				del windowMM
-				del layoutMM
-
-				return False, f"Erro placing order! {msgRet}"
-
-			if valuesMM['CB_COPYTRADE'] == True and COPYTRADE_IsEnable() == True:
-				logging.info("Call COPYTRADE...")
-
-			logging.info(f'{windowTitle} - CONFIRMED!')
-
-		elif eventMM == sg.WIN_CLOSED or eventMM == 'CANCEL':
-			logging.info(f'{windowTitle} - CANCELLED!')
-			break
-
-	windowMM.close()
-
-	del windowMM
-	del layoutMM
-
-	return True, "Ok"
-
-def BS_MarginLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->[bool, str]:
-	layoutML = [
-		[sg.Text('Symbol: ', background_color = bgcolor), sg.InputText(key = '-SYMBOL-')],
-		[sg.Text('Qtd: ', background_color = bgcolor), sg.InputText(key = '-QTD-')],
-		[sg.Text('Price: ', background_color = bgcolor), sg.InputText(key = '-PRICE-')],
-		[sg.Checkbox('send to CopyTrade', key='CB_COPYTRADE', default=True)],
-		[sg.Button('SEND!'), sg.Button('CANCEL')],
-	]
-
-	windowML = sg.Window(windowTitle, layoutML, background_color = bgcolor).Finalize()
-
-	while True:
-		eventML, valuesML = windowML.read()
-
-		if eventML == 'SEND!':
-			logging.info(f"{windowTitle} - Order Symbol: [{valuesML['-SYMBOL-']}] Qtd: [{valuesML['-QTD-']}] Price: [{valuesML['-PRICE-']}]")
-
-			if sg.popup_yes_no('CONFIRM?', text_color='yellow', background_color='red') == 'No':
-				logging.info(f'{windowTitle} - CANCELLED!')
-				continue
-
-			ret, msgRet = BinanceCTOrder.orderMargin(client,
-			                  logging.info,
-			                  symbOrd = valuesML['-SYMBOL-'],
-			                  qtdOrd  = valuesML['-QTD-'],
-			                  prcOrd  = valuesML['-PRICE-'],
-			                  sideOrd = clientSide,
-			                  typeOrd = Client.ORDER_TYPE_LIMIT)
-
-			if ret == False:
-				sg.popup('ERRO! Order didnt post!')
-
-				windowML.close()
-				del windowML
-				del layoutML
-
-				return False, f"Eror posting order! {msgRet}"
-
-			if valuesML['CB_COPYTRADE'] == True and COPYTRADE_IsEnable() == True:
-				logging.info("Call COPYTRADE...")
-
-			logging.info(f'{windowTitle} - CONFIRMED!')
-
-		elif eventML == sg.WIN_CLOSED or eventML == 'CANCEL':
-			logging.info(f'{windowTitle} - CANCELLED!')
-			break
-
-	windowML.close()
-	del windowML
-	del layoutML
-
-	return True, "Ok"
-
-def BS_SpotStopLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->[ bool, str]:
-	layoutSSL = [
-		[sg.Text('Symbol: ', background_color = bgcolor), sg.InputText(key = '-SYMBOL-')],
-		[sg.Text('Qtd: ', background_color = bgcolor), sg.InputText(key = '-QTD-')],
-		[sg.Text('Stop Price: ', background_color = bgcolor), sg.InputText(key = '-STOP PRICE-')],
-		[sg.Text('Limit Price: ', background_color = bgcolor), sg.InputText(key = '-LIMIT PRICE-')],
-		[sg.Checkbox('send to CopyTrade', key='CB_COPYTRADE', default=True)],
-		[sg.Button('SEND!'), sg.Button('CANCEL')],
-	]
-
-	windowSSL = sg.Window(windowTitle, layoutSSL, background_color = bgcolor).Finalize()
-
-	while True:
-		eventSSL, valuesSSL = windowSSL.read()
-
-		if eventSSL == 'SEND!':
-			logging.info(f"{windowTitle} - Order Symbol: [{valuesSSL['-SYMBOL-']}] Qtd: [{valuesSSL['-QTD-']}] Stop Prc: [{valuesSSL['-STOP PRICE-']}] Limit Prc: [{valuesSSL['-LIMIT PRICE-']}]")
-
-			if sg.popup_yes_no('CONFIRM?', text_color='yellow', background_color='red') == 'No':
-				logging.info(f'{windowTitle} - CANCELLED!')
-				continue
-
-			ret, msgRet = BinanceCTOrder.orderSpotLimit(client,
-			                                logging.info,
-			                                symbOrd = valuesSSL['-SYMBOL-'],
-			                                qtdOrd = valuesSSL['-QTD-'],
-			                                prcStopOrd = valuesSSL['-STOP PRICE-'],
-			                                prcStopLimitOrd = valuesSSL['-LIMIT PRICE-'],
-			                                sideOrd = clientSide)
-
-			if ret == False:
-				sg.popup('ERRO! Order didnt post!')
-
-				windowSSL.close()
-				del windowSSL
-				del layoutSSL
-
-				return False, f"Eror posting order! {msgRet}"
-
-			if valuesSSL['CB_COPYTRADE'] == True and COPYTRADE_IsEnable() == True:
-				logging.info("Call COPYTRADE...")
-
-			logging.info(f'{windowTitle} - CONFIRMED!')
-
-		elif eventSSL == sg.WIN_CLOSED or eventSSL == 'CANCEL':
-			logging.info(f'{windowTitle} - CANCELLED!')
-			break
-
-	windowSSL.close()
-	del windowSSL
-	del layoutSSL
-
-	return True, "Ok"
-
-def BS_SpotMarket(client, bgcolor = '', windowTitle = '', clientSide = 0)->[bool, str]:
-	layoutSM = [
-		[sg.Text('Symbol: ', background_color = bgcolor), sg.InputText(key = '-SYMBOL-')],
-		[sg.Text('Qtd: ', background_color = bgcolor), sg.InputText(key = '-QTD-')],
-		[sg.Checkbox('send to CopyTrade', key='CB_COPYTRADE', default=True)],
-		[sg.Button('SEND!'), sg.Button('CANCEL')],
-	]
-
-	windowSM = sg.Window(windowTitle, layoutSM, background_color = bgcolor).Finalize()
-
-	while True:
-		eventSM, valuesSM = windowSM.read()
-
-		if eventSM == 'SEND!':
-			logging.info(f"{windowTitle} - Order Symbol: [{valuesSM['-SYMBOL-']}] Qtd: [{valuesSM['-QTD-']}]")
-
-			if sg.popup_yes_no('CONFIRM?', text_color='yellow', background_color='red') == 'No':
-				logging.info(f'{windowTitle} - CANCELLED!')
-				continue
-
-			ret, msgRet = BinanceCTOrder.orderSpot(client,
-			                logging.info,
-			                symbOrd = valuesSM['-SYMBOL-'],
-			                qtdOrd  = valuesSM['-QTD-'],
-			                sideOrd = clientSide,
-			                typeOrd = Client.ORDER_TYPE_MARKET)
-			if ret == False:
-				sg.popup('ERRO! Order didnt post!')
-
-				windowSM.close()
-				del windowSM
-				del layoutSM
-
-				return False, f"Erro posting order! {msgRet}"
-
-			if valuesSM['CB_COPYTRADE'] == True and COPYTRADE_IsEnable() == True:
-				logging.info("Call COPYTRADE...")
-
-			logging.info(f'{windowTitle} - CONFIRMED!')
-
-		elif eventSM == sg.WIN_CLOSED or eventSM == 'CANCEL':
-			logging.info(f'{windowTitle} - CANCELLED!')
-			break
-
-	windowSM.close()
-
-	del windowSM
-	del layoutSM
-
-	return True, "Ok"
-
-def BS_SpotLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->[bool, str]:
-	layoutSL = [
-		[sg.Text('Symbol: ', background_color = bgcolor), sg.InputText(key = '-SYMBOL-')],
-		[sg.Text('Qtd: ', background_color = bgcolor), sg.InputText(key = '-QTD-')],
-		[sg.Text('Price: ', background_color = bgcolor), sg.InputText(key = '-PRICE-')],
-		[sg.Checkbox('send to CopyTrade', key='CB_COPYTRADE', default=True)],
-		[sg.Button('SEND!'), sg.Button('CANCEL')],
-	]
-
-	windowSL = sg.Window(windowTitle, layoutSL, background_color = bgcolor).Finalize()
-
-	while True:
-		eventSL, valuesSL = windowSL.read()
-
-		if eventSL == 'SEND!':
-			logging.info(f"{windowTitle} - Order Symbol: [{valuesSL['-SYMBOL-']}] Qtd: [{valuesSL['-QTD-']}] Price: [{valuesSL['-PRICE-']}]")
-
-			if sg.popup_yes_no('CONFIRM?', text_color='yellow', background_color='red') == 'No':
-				logging.info(f'{windowTitle} - CANCELLED!')
-				continue
-
-			ret, msgRet = BinanceCTOrder.orderSpot(client,
-			                logging.info,
-			                symbOrd = valuesSL['-SYMBOL-'],
-			                qtdOrd  = valuesSL['-QTD-'],
-			                prcOrd  = valuesSL['-PRICE-'],
-			                sideOrd = clientSide,
-			                typeOrd = Client.ORDER_TYPE_LIMIT)
-			if ret == False:
-				sg.popup('ERRO! Order didnt post!')
-
-				windowSL.close()
-				del windowSL
-				del layoutSL
-
-				return False, f"Erro posting order! {msgRet}"
-
-			if valuesSL['CB_COPYTRADE'] == True and COPYTRADE_IsEnable() == True:
-				logging.info("Call COPYTRADE...")
-
-			logging.info(f'{windowTitle} - CONFIRMED!')
-
-		elif eventSL == sg.WIN_CLOSED or eventSL == 'CANCEL':
-			logging.info(f'{windowTitle} - CANCELLED!')
-			break
-
-	windowSL.close()
-	del windowSL
-	del layoutSL
-
-	return True, "Ok"
-
-def ListOpenOrders(client)->[bool, str]:
-
-	def buildOrderList(ordList):
-		return [sg.CBox(f"{ordList['orderId']}", key=f"{ordList['orderId']}"),
-		        sg.Text(f"{ordList['symbol']}\t\t{ordList['side']}\t\t{ordList['price']}\t\t{ordList['origQty']}\t\t{ordList['type']}", font=("Courier", 10))]
-
-	try:
-		openOrders = client.get_open_orders() #recvWindow
-		openMarginOrders = client.get_open_margin_orders() #recvWindow
-	except BinanceRequestException as e:
-		return False, f"Erro at client.get_open_orders() BinanceRequestException: [{e.status_code} - {e.message}]"
-
-	except BinanceAPIException as e:
-		return False, f"Erro at client.get_open_orders() BinanceAPIException: [{e.status_code} - {e.message}]"
-
-	except Exception as e:
-		return False, f"Erro at client.get_open_orders(): {e}"
-
-	if len(openOrders) == 0:
-		layoutFrameSpotOpen = [[sg.Text("0 orders.", font=("Courier", 10))]]
-	else:
-		layoutFrameSpotOpen = [[sg.Text("Order Id\tSymbol\tSide\tPrice\tQtd\tType", font=("Courier", 10))]]
-		[layoutFrameSpotOpen.append(buildOrderList(i)) for i in openOrders]
-		layoutFrameSpotOpen.append([sg.Button('Delete Spot Order'), sg.Button('Copy Spot data to clipboard'), sg.Button('CopyTrade')])
-
-	if len(openMarginOrders) == 0:
-		layoutFrameMarginOpen = [[sg.Text("0 orders.", font=("Courier", 10))]]
-	else:
-		layoutFrameMarginOpen = [[sg.Text("Order Id\tSymbol\tSide\tPrice\tQtd\tType", font=("Courier", 10))]]
-		[layoutFrameMarginOpen.append(buildOrderList(i)) for i in openMarginOrders]
-		layoutFrameMarginOpen.append([sg.Button('Delete Margin Order'), sg.Button('Copy Margin data to clipboard'), sg.Button('CopyTrade')])
-
-	layoutListOpenOrders = [
-		[sg.Frame('SPOT', layoutFrameSpotOpen, title_color='blue')],
-		[sg.Frame('MARGIN', layoutFrameMarginOpen, title_color='blue')],
-		[sg.Button('Close')]
-	]
-
-	windowListOpenOrder = sg.Window('Open Orders', layoutListOpenOrders);
-
-	eventLOO, valuesLOO = windowListOpenOrder.read()
-
-	del layoutFrameSpotOpen
-	del layoutFrameMarginOpen
-
-	if eventLOO == sg.WIN_CLOSED or eventLOO == 'Close':
-		pass
-
-	elif eventLOO == 'Delete Margin Order':
-		logging.info("Deleting margin orders:")
-
-		for i in [str(k) for k, v in valuesLOO.items() if v == True]:
-
-			for j2 in openMarginOrders:
-
-				if j2['orderId'] == int(i):
-					ret, msgRet = BinanceCTOrder.cancel_a_margin_order(client, logging.info, symbOrd = j2['symbol'], ordrid = j2['orderId'])
-					if ret == False:
-						logging.info(f"Erro canceling MARGIN order {j2['orderId']}! {msgRet}")
-
-						windowListOpenOrder.close()
-
-						del openOrders
-						del openMarginOrders
-						del windowListOpenOrder
-						del layoutListOpenOrders
-
-						return False, f"Erro canceling MARGIN order {j2['orderId']}! {msgRet}"
-
-	elif eventLOO == 'Copy Margin data to clipboard':
-		pass
-	elif eventLOO == 'CopyTrade':
-		pass
-
-	elif eventLOO == 'Delete Spot Order':
-		logging.info("Deleting spot orders:")
-
-		for i in [str(k) for k, v in valuesLOO.items() if v == True]:
-
-			for j1 in openOrders:
-
-				if j1['orderId'] == i:
-					ret, msgRet = BinanceCTOrder.cancel_a_spot_order(client, logging.info, symbOrd = j2['symbol'], ordrid = j2['orderId'])
-					if ret == False:
-						logging.info(f"Erro canceling SPOT order {j1['orderId']}! {msgRet}")
-
-						windowListOpenOrder.close()
-
-						del openOrders
-						del openMarginOrders
-						del windowListOpenOrder
-						del layoutListOpenOrders
-
-						return False, f"Erro canceling SPOT order {j1['orderId']}! {msgRet}"
-
-	elif eventLOO == 'Copy Spot data to clipboard':
-		pass
-	elif eventLOO == 'CopyTrade':
-		pass
-
-	windowListOpenOrder.close()
-
-	del openOrders
-	del openMarginOrders
-	del windowListOpenOrder
-	del layoutListOpenOrders
-
-	return True, 'Ok'
+	logging.info(f"Exit with code [{num}]")
+	exit(num)
 
 # --- CFG ---------------------------------
 
@@ -528,13 +42,13 @@ try:
 	cfgFile = configparser.ConfigParser()
 	cfgFile.read(argv[1])
 
-	ctm_name = cfgFile['GENERAL']['name']
-	ctm_log  = cfgFile['GENERAL']['log']
-	ctm_enable  = cfgFile['GENERAL']['copytrade_enable']
+	ctm_name   = cfgFile['GENERAL']['name']
+	ctm_log    = cfgFile['GENERAL']['log']
+	ctm_enable = cfgFile['GENERAL']['copytrade_enable']
 	ctm_theme  = cfgFile['GENERAL']['theme']
 
-	binance_apikey = cfgFile['BINANCE']['apikey']
-	binance_sekkey = cfgFile['BINANCE']['sekkey']
+	binance_apikey     = cfgFile['BINANCE']['apikey']
+	binance_sekkey     = cfgFile['BINANCE']['sekkey']
 	binance_recvwindow = cfgFile['BINANCE']['recvwindow']
 
 	signalSource_port    = cfgFile['SIGNAL_SOURCE']['port']
@@ -579,7 +93,7 @@ logging.info(f"Starting at: [{BinanceCTUtil.getTimeStamp()}] PID: [{getpid()}]")
 logging.info('Configuration:')
 logging.info(f"Name.....................: [{ctm_name}]")
 logging.info(f"Copy Trade enable........? [{ctm_enable}]")
-logging.info(f"Teheme...................: [{ctm_theme}]")
+logging.info(f"Theme....................: [{ctm_theme}]")
 
 logging.info(f"Signal Send port.........: [{signalSource_port}]")
 logging.info(f"Signal Send address......: [{signalSource_address}]")
@@ -597,7 +111,45 @@ elif db_engine == BinanceCTDB.CT_DB_TYPE_POSTGRESQL:
 	logging.info(f"DB Port..................: [{db_port}]")
 	logging.info(f"DB Schema................: [{db_schema}]")
 
+# --- BINANCE CONNECTION ------------------
+
+try:
+	client = Client(binance_apikey, binance_sekkey, {"verify": True, "timeout": 20})
+
+except BinanceAPIException as e:
+	safeExit(1, f"Binance API exception: [{e.status_code} - {e.message}]")
+
+except BinanceRequestException as e:
+	safeExit(1, f"Binance request exception: [{e.status_code} - {e.message}]")
+
+except BinanceWithdrawException as e:
+	safeExit(1, f"Binance withdraw exception: [{e.status_code} - {e.message}]")
+
+except Exception as e:
+	safeExit(1, f"Binance connection error: {e}")
+
+# --- DATABASE ----------------------------
+
+ctmDB = BinanceCTDB.CT_DB(_engine = db_engine, _sqliteDBFile = db_file)
+
+ret, retmsg = ctmDB.DB.connect()
+if ret == False:
+	logging.info(f"Error opening database: [{retmsg}]")
+	exit(1)
+
+ret, retmsg = ctmDB.DB.createTablesIfNotExist()
+if ret == False:
+	safeExit(1, f"Error creating tables: [{retmsg}]")
+
 # -----------------------------------------
+
+if ctm_enable == "YES":
+	CopyTrade_Manual_Util.setCopyTradeEnable(True)
+else:
+	CopyTrade_Manual_Util.setCopyTradeEnable(False)
+	loggging.info("Copy trade disable by config file")
+
+CopyTrade_Manual_Util.setSrvSendInformation(signalSource_address, int(signalSource_port))
 
 STATUSBAR_WRAP = 100
 
@@ -626,28 +178,6 @@ layout = [
 	[sg.StatusBar('Last msg: Initialized', key='LASTMSG', size=(250, 3), justification='left')],
 ]
 
-#BU.setConfirmationYES(True)
-
-# --- BINANCE CONNECTION ------------------
-try:
-	client = Client(binance_apikey, binance_sekkey, {"verify": True, "timeout": 20})
-
-except BinanceAPIException as e:
-	logging.info(f"Binance API exception: [{e.status_code} - {e.message}]")
-	exit(1)
-
-except BinanceRequestException as e:
-	logging.info(f"Binance request exception: [{e.status_code} - {e.message}]")
-	exit(1)
-
-except BinanceWithdrawException as e:
-	logging.info(f"Binance withdraw exception: [{e.status_code} - {e.message}]")
-	exit(1)
-
-except Exception as e:
-	logging.info(f"Binance connection error: {e}")
-	exit(1)
-
 sg.theme(ctm_theme)
 
 #sg.set_options(suppress_raise_key_errors=False, suppress_error_popups=False, suppress_key_guessing=False)
@@ -672,7 +202,7 @@ while True:
 	elif event == 'Infos acc':
 		window.Hide()
 
-		ret, msgRet = printAccountInfo(client)
+		ret, msgRet = CopyTrade_Manual_Util.printAccountInfo(client)
 		window['LASTMSG'].update(fill(f'Last operation returned: {msgRet}', STATUSBAR_WRAP))
 
 		window.UnHide()
@@ -684,7 +214,7 @@ while True:
 	elif event == 'BTTN_BSM':
 		window.Hide()
 
-		ret, msgRet = BS_SpotMarket(client, 'green', 'Buy Spot Market', Client.SIDE_BUY)
+		ret, msgRet = CopyTrade_Manual_Util.BS_SpotMarket(client, 'green', 'Buy Spot Market', Client.SIDE_BUY)
 		window['LASTMSG'].update(fill(f'Last operation returned: {msgRet}', STATUSBAR_WRAP))
 
 		window.UnHide()
@@ -693,7 +223,7 @@ while True:
 	elif event == 'BTTN_BSL':
 		window.Hide()
 
-		ret, msgRet = BS_SpotLimit(client, 'green', 'Buy Spot Limit', Client.SIDE_BUY)
+		ret, msgRet = CopyTrade_Manual_Util.BS_SpotLimit(client, 'green', 'Buy Spot Limit', Client.SIDE_BUY)
 		window['LASTMSG'].update(fill(f'Last operation returned: {msgRet}', STATUSBAR_WRAP))
 
 		window.UnHide()
@@ -702,7 +232,7 @@ while True:
 	elif event == 'BTTN_BSSL':
 		window.Hide()
 
-		ret, msgRet = BS_SpotStopLimit(client, 'green', 'Buy Spot Stop Limit', Client.SIDE_BUY)
+		ret, msgRet = CopyTrade_Manual_Util.BS_SpotStopLimit(client, 'green', 'Buy Spot Stop Limit', Client.SIDE_BUY)
 		window['LASTMSG'].update(fill(f'Last operation returned: {msgRet}', STATUSBAR_WRAP))
 
 		window.UnHide()
@@ -715,7 +245,7 @@ while True:
 	elif event == 'BTTN_BMM':
 		window.Hide()
 
-		ret, msgRet = BS_MarginMarket(client, 'red', 'Sell Margin Limit', Client.SIDE_SELL)
+		ret, msgRet = CopyTrade_Manual_Util.BS_MarginMarket(client, 'red', 'Sell Margin Limit', Client.SIDE_SELL)
 		window['LASTMSG'].update(fill(f'Last operation returned: {msgRet}', STATUSBAR_WRAP))
 
 		window.UnHide()
@@ -724,7 +254,7 @@ while True:
 	elif event == 'BTTN_BML':
 		window.Hide()
 
-		ret, msgRet = BS_MarginLimit(client, 'green', 'Buy Margin Limit', Client.SIDE_BUY)
+		ret, msgRet = CopyTrade_Manual_Util.BS_MarginLimit(client, 'green', 'Buy Margin Limit', Client.SIDE_BUY)
 		window['LASTMSG'].update(fill(f'Last operation returned: {msgRet}', STATUSBAR_WRAP))
 
 		window.UnHide()
@@ -733,7 +263,7 @@ while True:
 	elif event == 'BTTN_BMSL':
 		window.Hide()
 
-		ret, retMsg = BS_MarginStopLimit(client, 'green', 'Buy Margin Stop Limit', Client.SIDE_BUY)
+		ret, retMsg = CopyTrade_Manual_Util.BS_MarginStopLimit(client, 'green', 'Buy Margin Stop Limit', Client.SIDE_BUY)
 		window['LASTMSG'].update(fill(f'Last operation returned: {retMsg}', STATUSBAR_WRAP))
 
 		window.UnHide()
@@ -746,7 +276,7 @@ while True:
 	elif event == 'BTTN_SSM':
 		window.Hide()
 
-		ret, msgRet = BS_SpotMarket(client, 'red', 'Sell Spot Market', Client.SIDE_SELL)
+		ret, msgRet = CopyTrade_Manual_Util.BS_SpotMarket(client, 'red', 'Sell Spot Market', Client.SIDE_SELL)
 		window['LASTMSG'].update(fill(f'Last operation returned: {msgRet}', STATUSBAR_WRAP))
 
 		window.UnHide()
@@ -755,7 +285,7 @@ while True:
 	elif event == 'BTTN_SSL':
 		window.Hide()
 
-		ret, retMsg = BS_SpotLimit(client, 'red', 'Sell Spot Limit', Client.SIDE_SELL)
+		ret, retMsg = CopyTrade_Manual_Util.BS_SpotLimit(client, 'red', 'Sell Spot Limit', Client.SIDE_SELL)
 		window['LASTMSG'].update(fill(f'Last operation returned: {retMsg}', STATUSBAR_WRAP))
 
 		window.UnHide()
@@ -764,7 +294,7 @@ while True:
 	elif event == 'BTTN_SSSL':
 		window.Hide()
 
-		ret, retMsg = BS_SpotStopLimit(client, 'red', 'Sell Spot Stop Limit', Client.SIDE_SELL)
+		ret, retMsg = CopyTrade_Manual_Util.BS_SpotStopLimit(client, 'red', 'Sell Spot Stop Limit', Client.SIDE_SELL)
 		window['LASTMSG'].update(fill(f'Last operation returned: {retMsg}', STATUSBAR_WRAP))
 
 		window.UnHide()
@@ -777,7 +307,7 @@ while True:
 	elif event == 'BTTN_SMM':
 		window.Hide()
 
-		ret, retMsg = BS_MarginMarket(client, 'red', 'Sell Margin Limit', Client.SIDE_SELL)
+		ret, retMsg = CopyTrade_Manual_Util.BS_MarginMarket(client, 'red', 'Sell Margin Limit', Client.SIDE_SELL)
 		window['LASTMSG'].update(fill(f'Last operation returned: {retMsg}', STATUSBAR_WRAP))
 
 		window.UnHide()
@@ -786,7 +316,7 @@ while True:
 	elif event == 'BTTN_SML':
 		window.Hide()
 
-		ret, retMsg = BS_MarginLimit(client, 'red', 'Sell Margin Limit', Client.SIDE_SELL)
+		ret, retMsg = CopyTrade_Manual_Util.BS_MarginLimit(client, 'red', 'Sell Margin Limit', Client.SIDE_SELL)
 		window['LASTMSG'].update(fill(f'Last operation returned: {retMsg}', STATUSBAR_WRAP))
 
 		window.UnHide()
@@ -795,7 +325,7 @@ while True:
 	elif event == 'BTTN_SMSL':
 		window.Hide()
 
-		ret, msgRet = BS_MarginStopLimit(client, 'red', 'Sell Margin Stop Limit', Client.SIDE_SELL)
+		ret, msgRet = CopyTrade_Manual_Util.BS_MarginStopLimit(client, 'red', 'Sell Margin Stop Limit', Client.SIDE_SELL)
 		window['LASTMSG'].update(fill(f'Last operation returned: {msgRet}', STATUSBAR_WRAP))
 
 		window.UnHide()
@@ -811,7 +341,7 @@ while True:
 	elif event == 'BTTN_LDOO':
 		window.Hide()
 
-		ret, msgRet = ListOpenOrders(client)
+		ret, msgRet = CopyTrade_Manual_Util.ListOpenOrders(client)
 		window['LASTMSG'].update(fill(f'Last operation returned: {msgRet}', STATUSBAR_WRAP))
 
 		window.UnHide()
@@ -830,4 +360,4 @@ while True:
 
 window.close()
 
-exit(0)
+safeExit(0)

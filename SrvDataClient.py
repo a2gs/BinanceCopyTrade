@@ -7,7 +7,7 @@ from BinanceCTUtil import getTimeStamp
 from sys import argv, exit, stderr
 from os import getpid
 from signal import signal, SIGILL, SIGTRAP, SIGINT, SIGHUP, SIGTERM, SIGSEGV, SIGUSR1
-from BinanceCTDB import CT_DB_TYPE_SQLITE, CT_DB_TYPE_POSTGRESQL
+import BinanceCTDB
 import socket
 import envelop_sendRecv
 import configparser
@@ -16,6 +16,21 @@ import logging
 if len(argv) != 2:
 	print(f"Usage:\n\t{argv[0]} CFG_FILE.cfg")
 	exit(1)
+
+con     = None # Socket: signal source
+srvDCDB = None # Database handle
+
+def safeExit(num : int = 0, msg : str = ""):
+
+	if srvDCDB != None:
+		srvDCDB.DB.commit()
+		srvDCDB.DB.quit()
+
+	if msg != "":
+		logging.debug(msg)
+
+	logging.debug(f"Exit with code [{num}]")
+	exit(num)
 
 def sigHandler(signum, frame):
 	if signum == SIGUSR1:
@@ -50,10 +65,10 @@ try:
 
 	db_engine = cfgFile['DB']['engine']
 
-	if db_engine == CT_DB_TYPE_SQLITE:
+	if db_engine == BinanceCTDB.CT_DB_TYPE_SQLITE:
 		db_file = cfgFile['DB']['file']
 
-	elif db_engine == CT_DB_TYPE_POSTGRESQL:
+	elif db_engine == BinanceCTDB.CT_DB_TYPE_POSTGRESQL:
 		db_user = cfgFile['DB']['user']
 		db_pass = cfgFile['DB']['pass']
 		db_port = cfgFile['DB']['port']
@@ -94,10 +109,10 @@ logging.info(f"Signal Source Max Conns: [{signalSrvDataClient_maxconn }]")
 
 logging.info(f"DB Engine..............: [{db_engine}]")
 
-if db_engine == CT_DB_TYPE_SQLITE:
+if db_engine == BinanceCTDB.CT_DB_TYPE_SQLITE:
 	logging.info(f"DB File................: [{db_file}]")
 
-elif db_engine == CT_DB_TYPE_POSTGRESQL:
+elif db_engine == BinanceCTDB.CT_DB_TYPE_POSTGRESQL:
 	logging.info(f"DB User................: [{db_user}]")
 	logging.info(f"DB Port................: [{db_port}]")
 	logging.info(f"DB Schema..............: [{db_schema}]")
@@ -105,9 +120,33 @@ elif db_engine == CT_DB_TYPE_POSTGRESQL:
 # --- SOCKET ------------------------------
 
 con = envelop_sendRecv.connection()
-con.serverLoad(socket.AF_INET, socket.SOCK_STREAM)
-con.sockOpts(socket.SO_REUSEADDR)
-con.serverBindListen(int(signalSrvDataClient_port), int(signalSrvDataClient_maxconn))
+
+ret, retmsg = con.serverLoad(socket.AF_INET, socket.SOCK_STREAM)
+if ret == False:
+	safeExit(1, f"Erro loading server: [{retmsg}]!")
+
+ret, retmsg = con.sockOpts(socket.SO_REUSEADDR)
+if ret == False:
+	safeExit(1, f"Erro sockOpts server: [{retmsg}]!")
+
+ret, retmsg = con.serverBindListen(int(signalSrvDataClient_port), int(signalSrvDataClient_maxconn))
+if ret == False:
+	safeExit(1, f"Erro binding server: [{retmsg}]!")
+
+# --- DATABASE ----------------------------
+
+srvDCDB = BinanceCTDB.CT_DB(_engine = db_engine, _sqliteDBFile = db_file)
+
+ret, retmsg = srvDCDB.DB.connect()
+if ret == False:
+	logging.info(f"Error opening database: [{retmsg}]")
+	exit(1)
+
+ret, retmsg = srvDCDB.DB.createTablesIfNotExist()
+if ret == False:
+	safeExit(1, f"Error creating tables: [{retmsg}]")
+
+# -----------------------------------------
 
 while True:
 	logging.info("Wating connection...")

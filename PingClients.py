@@ -37,7 +37,6 @@ del cfgFile
 
 # --- SOCKET ------------------------------
 
-
 ping_sample1 = BinanceCTProto.CT_PROTO()
 ping_sample1.cmd = BinanceCTProto.CT_CMD_PING
 
