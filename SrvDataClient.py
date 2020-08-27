@@ -22,7 +22,7 @@ srvDCDB = None # Database handle
 
 def safeExit(num : int = 0, msg : str = ""):
 
-	if srvDCDB != None:
+	if srvDCDB is not None:
 		srvDCDB.DB.commit()
 		srvDCDB.DB.quit()
 

@@ -25,12 +25,12 @@ if len(argv) != 2:
 	print(f"Usage:\n\t{argv[0]} CFG_FILE.cfg")
 	exit(1)
 
-con = None   # Socket: signal data client
+con   = None   # Socket: signal data client
 cliDB = None # Database handle
 
 def safeExit(num : int = 0, msg : str = ""):
 
-	if srvDB != None:
+	if srvDB is not None:
 		srvDB.DB.commit()
 		srvDB.DB.quit()
 

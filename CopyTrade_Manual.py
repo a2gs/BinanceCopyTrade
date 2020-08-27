@@ -26,7 +26,7 @@ ctmDB = None # Database handle
 
 def safeExit(num : int = 0, msg : str = ""):
 
-	if ctmDB != None:
+	if ctmDB is not None:
 		ctmDB.DB.commit()
 		ctmDB.DB.quit()
 
@@ -149,7 +149,7 @@ else:
 	CopyTrade_Manual_Util.setCopyTradeEnable(False)
 	loggging.info("Copy trade disable by config file")
 
-CopyTrade_Manual_Util.setSrvSendInformation(signalSource_address, int(signalSource_port))
+CopyTrade_Manual_Util.setSrvSendInformation(signalSource_address, int(signalSource_port), ctm_name)
 
 STATUSBAR_WRAP = 100
 

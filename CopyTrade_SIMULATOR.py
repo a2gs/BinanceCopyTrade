@@ -52,7 +52,8 @@ copytrade_sample1.response_timestamp = ""
 
 copytrade_sample1.data = BinanceCTProto.CT_PROTO_COPYTRADE_DATA(_symbol = "BTCUSDT", _side = "BUY",
                                                                 _ordid = "1234567890", _ordtype = "LIMIT",
-                                                                _price = "10.10101010")
+                                                                _price = "10.10101010", _qtd = 10,
+                                                                _priceStop = "123.12", _priceLimit = "321231")
 
 ret, msg = copytrade_sample1.formatToNet()
 if ret == False:

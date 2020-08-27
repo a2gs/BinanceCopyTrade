@@ -24,7 +24,7 @@ srvDB = None # Database handle
 
 def safeExit(num : int = 0, msg : str = ""):
 
-	if srvDB != None:
+	if srvDB is not None:
 		srvDB.DB.commit()
 		srvDB.DB.quit()
 
@@ -36,14 +36,10 @@ def safeExit(num : int = 0, msg : str = ""):
 
 def execCmdCopytradeReq(recv : BinanceCTProto.CT_PROTO = None)->[bool, str, BinanceCTProto.CT_PROTO, BinanceCTProto.CT_PROTO]: 
 
-	ret, retmsg = srvDB.DB.insertCmd(recv)
-	if ret == False:
-		return([False, f"Database error inserting recv cmd [{retmsg}]", None, None])
-
 	srvSendTimestamp = getTimeStamp()
 
 	# Message to clients (pub/sub)
-	sendForward = BinanceCTProto.CT_PROTO(_cmd            = BinanceCTProto.CT_CMD_COPYTRADE,
+	sendForward = BinanceCTProto.CT_PROTO(_cmd            = recv.cmd,
 	                                      _fromto_from    = recv.fromto['from'],
 	                                      _fromto_to      = recv.fromto['to'],
 	                                      _timestamp      = recv.timestamp,
@@ -51,36 +47,14 @@ def execCmdCopytradeReq(recv : BinanceCTProto.CT_PROTO = None)->[bool, str, Bina
 	                                      _resp_timestamp = srvSendTimestamp, # Client will receive the SrvSend timestamp
 	                                      _data           = recv.data)
 
-	ret, retmsg = srvDB.DB.insertCmd(sendForward)
-	if ret == False:
-		sendResponseErr = BinanceCTProto.CT_PROTO(_cmd            = BinanceCTProto.CT_CMD_COPYTRADE,
-		                                          _fromto_from    = recv.fromto['to'],
-		                                          _fromto_to      = recv.fromto['from'],
-		                                          _timestamp      = srvSendTimestamp,
-		                                          _cmdtype        = BinanceCTProto.CT_TYPE_RESPONSE,
-		                                          _resp_timestamp = recv.timestamp,
-		                                          _data           = BinanceCTProto.CT_PROTO_RESPONSE(BinanceCTProto.CT_PROTO_COPYTRADE_ERROR1, "Insert sendForward error"))
-		return([False, f"Database error inserting forward cmd [{retmsg}]", None, sendResponse])
-
 	# Message response to CopyTrade
-	sendResponse = BinanceCTProto.CT_PROTO(_cmd            = BinanceCTProto.CT_CMD_COPYTRADE,
+	sendResponse = BinanceCTProto.CT_PROTO(_cmd            = recv.cmd,
 	                                       _fromto_from    = recv.fromto['to'],
 	                                       _fromto_to      = recv.fromto['from'],
 	                                       _timestamp      = srvSendTimestamp,
 	                                       _cmdtype        = BinanceCTProto.CT_TYPE_RESPONSE,
 	                                       _resp_timestamp = recv.timestamp,
 	                                       _data           = BinanceCTProto.CT_PROTO_RESPONSE(BinanceCTProto.CT_PROTO_RESP_OK, "Ok"))
-
-	ret, retmsg = srvDB.DB.insertCmd(sendResponse)
-	if ret == False:
-		sendResponseErr = BinanceCTProto.CT_PROTO(_cmd            = BinanceCTProto.CT_CMD_COPYTRADE,
-		                                          _fromto_from    = recv.fromto['to'],
-		                                          _fromto_to      = recv.fromto['from'],
-		                                          _timestamp      = srvSendTimestamp,
-		                                          _cmdtype        = BinanceCTProto.CT_TYPE_RESPONSE,
-		                                          _resp_timestamp = recv.timestamp,
-		                                          _data           = BinanceCTProto.CT_PROTO_RESPONSE(BinanceCTProto.CT_PROTO_COPYTRADE_ERROR2, "Insert sendResponse error"))
-		return([False, f"Database error inserting response cmd [{retmsg}]", None, sendResponseErr])
 
 	return([True, "Ok", sendForward, sendResponse])
 
@@ -98,17 +72,26 @@ def execCmdPingReq(recv : BinanceCTProto.CT_PROTO = None)->[bool, str, BinanceCT
 
 def execCmdCancelOrderReq(recv : BinanceCTProto.CT_PROTO = None)->[bool, str, BinanceCTProto.CT_PROTO, BinanceCTProto.CT_PROTO]:
 
-	# TODO: send cancel order to pubsub
+	srvSendTimestamp = getTimeStamp()
 
+	# Message to clients (pub/sub)
+	sendForward = BinanceCTProto.CT_PROTO(_cmd            = recv.cmd,
+	                                      _fromto_from    = recv.fromto['from'],
+	                                      _fromto_to      = recv.fromto['to'],
+	                                      _timestamp      = recv.timestamp,
+	                                      _cmdtype        = recv.cmdtype, # must be: BinanceCTProto.CT_TYPE_REQUEST
+	                                      _resp_timestamp = srvSendTimestamp, # Client will receive the SrvSend timestamp
+	                                      _data           = recv.data)
+	# Message response to CopyTrade
 	sendResponse = BinanceCTProto.CT_PROTO(_cmd            = recv.cmd,
 	                                       _fromto_from    = recv.fromto['to'],
 	                                       _fromto_to      = recv.fromto['from'],
-	                                       _timestamp      = getTimeStamp(),
+	                                       _timestamp      = srvSendTimestamp,
 	                                       _cmdtype        = BinanceCTProto.CT_TYPE_RESPONSE,
 	                                       _resp_timestamp = recv.timestamp,
 	                                       _data           = BinanceCTProto.CT_PROTO_RESPONSE(BinanceCTProto.CT_PROTO_RESP_OK, "Ok"))
 
-	return([True, "Ok", None, sendResponse])
+	return([True, "Ok", sendForward, sendResponse])
 
 def execCmdGetOpenOrdersReq(recv : BinanceCTProto.CT_PROTO = None)->[bool, str, BinanceCTProto.CT_PROTO, BinanceCTProto.CT_PROTO]:
 
@@ -142,6 +125,36 @@ def sendToPUBSUB(pubsock, topic : str = "", msg : str = "")->[bool, str]:
 		return([False, f"Error sendToPUBSUB NotDone: [{e.errno}] [{e.msg}]"])
 	except zmq.ZMQBindError as e:
 		return([False, f"Error sendToPUBSUB ZMQBindError: [{e.errno}] [{e.msg}]"])
+
+	return([True, "Ok"])
+
+def insertingCmds(recv         : BinanceCTProto.CT_PROTO = None,
+                  sendForward  : BinanceCTProto.CT_PROTO = None,
+                  sendResponse : BinanceCTProto.CT_PROTO = None)->[bool, str]:
+
+	if recv is not None:
+		ret, retmsg = srvDB.DB.insertCmd(recv)
+		if ret == False:
+			srvDB.DB.rollback()
+			return([False, f"Error inserting received cmd: [{retmsg}]!"])
+	else:
+		logging.info("RECV NONE")
+
+	if sendForward is not None:
+		ret, retmsg = srvDB.DB.insertCmd(sendForward)
+		if ret == False:
+			srvDB.DB.rollback()
+			return([False, f"Error inserting forward cmd: [{retmsg}]!"])
+	else:
+		logging.info("RECV NONE")
+
+	if sendResponse is not None:
+		ret, retmsg = srvDB.DB.insertCmd(sendResponse)
+		if ret == False:
+			srvDB.DB.rollback()
+			return([False, f"Error inserting response cmd: [{retmsg}]!"])
+	else:
+		logging.info("RECV NONE")
 
 	return([True, "Ok"])
 
@@ -273,7 +286,7 @@ if ret == False:
 
 while True:
 
-	logging.info('Waiting connections..')
+	logging.info('Waiting connections from CopyTrade peers...')
 
 	ret, msgret, client = con.serverAccept()
 	if ret == False:
@@ -281,7 +294,7 @@ while True:
 
 	ret, retmsg, msgRecv = con.recvMsg()
 	if ret == False:
-		safeExit(1, f"Error recvMsg: [{retmsg}]")
+		safeExit(1, f"Error receiving message: [{retmsg}]")
 
 	recv = BinanceCTProto.CT_PROTO()
 
@@ -319,6 +332,7 @@ while True:
 			                                          _data           = BinanceCTProto.CT_PROTO_RESPONSE(BinanceCTProto.CT_PROTO_COPYTRADE_ERROR3, "Undef CT request or response"))
 
 	elif recv.cmd == BinanceCTProto.CT_CMD_PING:
+
 		logging.info("PING!")
 		ret, retmsg, sendForward, sendResponse = execCmdPingReq(recv)
 		if ret == False:
@@ -347,50 +361,57 @@ while True:
 			logging.info(f"Unknow protocol: [{retmsg}]")
 
 	# sending to PUBSUB clients
-	if sendForward != None:  # if None, there is nothing to forwarda (not everything should go to pubsub)
+	sentToPubSub = False
+	if sendForward is not None:  # if None, there is nothing to forwarda (not everything should goes to pubsub)
 		retfmt, retmsgfmt = sendForward.formatToNet()
 		if retfmt == False:
 			srvDB.DB.rollback()
 			safeExit(1, f"Error formatToNet() to PUBSUB [{retmsgfmt}]!") # TODO: exit proc?
 
 		ret, retmsg = sendToPUBSUB(pub_socket, pub_topic, retmsgfmt)
+		if ret == False:
+			srvDB.DB.rollback()
+			safeExit(1, f"Error sendToPUBSUB() [{retmsg}]!") # TODO: exit proc?
+			sentToPubSub = False
+		else:
+			sentToPubSub = True
 
 		logging.info(f"SENT TO PUBSUB [{pub_topic}]:")
 		BinanceCTProto.dumpCmdToLog(sendForward, logging.info)
 
+	# sending response to CopyTrade (socket), bad or not.
+	if sendResponse is None:  # allways must be !None, .... but exeCmd...() functions could not does your correct work (these functions returns sendResponse parameters ALWAYS, EVEN IF returns ret = False).
+		sendResponse = BinanceCTProto.CT_PROTO(_cmd            = recv.cmd,
+		                                       _fromto_from    = recv.fromto['to'],
+		                                       _fromto_to      = recv.fromto['from'],
+		                                       _timestamp      = getTimeStamp(),
+		                                       _cmdtype        = BinanceCTProto.CT_TYPE_RESPONSE,
+		                                       _resp_timestamp = recv.timestamp,
+		                                       _data           = BinanceCTProto.CT_PROTO_RESPONSE(BinanceCTProto.CT_PROTO_RESP_BAD_PROTO, "Bad protocol"))
+
+	ret, resp = sendResponse.formatToNet()
+	if ret == False:
+		srvDB.DB.rollback()
+		safeExit(1, f"Error bad formatToNet() to CopyTrade [{resp}]!") # TODO: exit proc?
+
+	ret, retmsg = con.sendMsg(resp, len(resp))
+	if ret == False:
+		srvDB.DB.rollback()
+		safeExit(1, f"Error sending response to CopyTrade [{retmsg}]!") # TODO: exit proc?
+
+	logging.info("SENT TO SOCKET:")
+	BinanceCTProto.dumpCmdToLog(sendResponse, logging.info)
+
+	if recv.cmd == BinanceCTProto.CT_CMD_COPYTRADE or recv.cmd == BinanceCTProto.CT_CMD_CANCELORDER or recv.cmd == BinanceCTProto.CT_CMD_GETOPENORDERS:
+
+		logging.debug("Inserting received, sent and forward cmds to database.")
+		ret, retmsg = insertingCmds(recv, sendForward, sendResponse)
 		if ret == False:
-			srvDB.DB.rollback()
-			safeExit(1, f"Error sendToPUBSUB() [{retmsg}]!") # TODO: exit proc?
+			logging.info(f"Error inserting CMDs into database: [{retmsg}]!")
 
-	# sending response to CopyTrade (socket)
-	resp = ""
-	if sendResponse != None:  # allways must be !None, .... but exeCmd...() functions could not does your correct work (these functions returns sendResponse parameters ALWAYS, EVEN IF returns ret = False).
-		ret, resp = sendResponse.formatToNet()
-		if ret == False:
-			srvDB.DB.rollback()
-			safeExit(1, f"Error formatToNet() to CopyTrade [{resp}]!") # TODO: exit proc?
+	srvDB.DB.commit()
 
-		logging.info("SENT TO SOCKET:")
-		BinanceCTProto.dumpCmdToLog(sendResponse, logging.info)
-	else:
-		sendBadResponse = BinanceCTProto.CT_PROTO(_cmd            = recv.cmd,
-		                                          _fromto_from    = recv.fromto['to'],
-		                                          _fromto_to      = recv.fromto['from'],
-		                                          _timestamp      = getTimeStamp(),
-		                                          _cmdtype        = BinanceCTProto.CT_TYPE_RESPONSE,
-		                                          _resp_timestamp = recv.timestamp,
-		                                          _data           = BinanceCTProto.CT_PROTO_RESPONSE(BinanceCTProto.CT_PROTO_RESP_BAD_PROTO, "Bad protocol"))
-		ret, resp = sendResponse.formatToNet()
-		if ret == False:
-			srvDB.DB.rollback()
-			safeExit(1, f"Error bad formatToNet() to CopyTrade [{resp}]!") # TODO: exit proc?
-
-		logging.info("SENT TO COPYTRADE:")
-		BinanceCTProto.dumpCmdToLog(sendBadResponse, logging.info)
-		del sendBadResponse
-
-	con.sendMsg(resp, len(resp))
-
+	# Forcing cleanup
 	del recv
 	del resp
 	del sendForward

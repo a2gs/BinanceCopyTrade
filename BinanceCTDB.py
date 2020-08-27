@@ -118,7 +118,7 @@ class CT_DB_SQLITE(CT_DB_INTERFACE):
 
 		return([True, "Ok"])
 
-	def insertCmd(self, cmd : BinanceCTProto.CT_PROTO)->[bool, str]:
+	def insertCmd(self, cmd : BinanceCTProto.CT_PROTO = None)->[bool, str]:
 
 		cmdValues = (cmd.cmd, cmd.fromto['from'], cmd.fromto['to'], cmd.timestamp, cmd.cmdtype, cmd.resp_timestamp, f"{cmd.data}")
 

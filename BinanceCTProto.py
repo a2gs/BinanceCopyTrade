@@ -56,7 +56,7 @@ class CT_PROTO:
 				'to'   : self.fromto['to']
 			},
 			'timestamp' : self.timestamp,
-			'type'      : self.cmdtype,
+			'type' : self.cmdtype,
 			'resp_timestamp' : self.resp_timestamp,
 		}
 
@@ -65,11 +65,14 @@ class CT_PROTO:
 		try:
 			if self.cmd == CT_CMD_COPYTRADE:
 				if msg['type'] == CT_TYPE_REQUEST:
-					msg['data']['symbol']  = self.data.symbol
-					msg['data']['side']    = self.data.side
-					msg['data']['ordid']   = self.data.ordid
-					msg['data']['ordtype'] = self.data.ordtype
-					msg['data']['price']   = self.data.price
+					msg['data']['symbol']     = self.data.symbol
+					msg['data']['side']       = self.data.side
+					msg['data']['ordid']      = self.data.ordid
+					msg['data']['ordtype']    = self.data.ordtype
+					msg['data']['qtd']        = self.data.qtd
+					msg['data']['price']      = self.data.price
+					msg['data']['priceStop']  = self.data.priceStop
+					msg['data']['priceLimit'] = self.data.priceLimit
 
 				elif msg['type'] == CT_TYPE_RESPONSE:
 					msg['data']['ret']    = self.data.ret
@@ -93,7 +96,7 @@ class CT_PROTO:
 					msg['data']['retmsg'] = self.data.retmsg
 
 		except Exception as e:
-			return([False, "{e}"])
+			return([False, "Index error: {e}"])
 
 		return([True, json.dumps(msg)])
 
@@ -111,11 +114,14 @@ class CT_PROTO:
 			self.data = CT_PROTO_COPYTRADE_DATA()
 
 			if self.cmdtype == CT_TYPE_REQUEST:
-				self.data.symbol  = jsonDump['data']['symbol']
-				self.data.side    = jsonDump['data']['side']
-				self.data.ordid   = jsonDump['data']['ordid']
-				self.data.ordtype = jsonDump['data']['ordtype']
-				self.data.price   = jsonDump['data']['price']
+				self.data.symbol     = jsonDump['data']['symbol']
+				self.data.side       = jsonDump['data']['side']
+				self.data.ordid      = jsonDump['data']['ordid']
+				self.data.ordtype    = jsonDump['data']['ordtype']
+				self.data.qtd        = jsonDump['data']['qtd']
+				self.data.price      = jsonDump['data']['price']
+				self.data.priceStop  = jsonDump['data']['priceStop']
+				self.data.priceLimit = jsonDump['data']['priceLimit']
 
 			elif self.cmdtype == CT_TYPE_RESPONSE:
 				self.data.ret    = jsonDump['data']['ret']
@@ -176,21 +182,27 @@ class CT_PROTO_GETOPENORDERS:
 		self.open_orders = []
 
 class CT_PROTO_COPYTRADE_DATA:
-	symbol  = ""
-	side    = ""
-	ordid   = ""
-	ordtype = ""
-	price   = ""
+	symbol     = ""
+	side       = ""
+	ordid      = ""
+	ordtype    = ""
+	qtd        = ""
+	price      = ""
+	priceStop  = ""
+	priceLimit = ""
 
-	def __init__(self, _symbol = "", _ordid = "", _side = "", _ordtype = "", _price = ""):
-		self.symbol  = _symbol
-		self.ordid   = _ordid
-		self.side    = _side
-		self.ordtype = _ordtype
-		self.price   = _price
+	def __init__(self, _symbol = "", _ordid = "", _side = "", _ordtype = "", _price = "", _qtd = "", _priceLimit = "", _priceStop = ""):
+		self.symbol     = _symbol
+		self.ordid      = _ordid
+		self.side       = _side
+		self.ordtype    = _ordtype
+		self.qtd        = _qtd
+		self.price      = _price
+		self.priceStop  = _priceStop
+		self.priceLimit = _priceLimit
 
 	def __str__(self):
-		return(f"Symb {self.symbol}|OrderId {self.ordid}|Side {self.side}|OrderType {self.ordtype}|Price {self.price}")
+		return(f"Symbol {self.symbol}|OrderId {self.ordid}|Side {self.side}|Qtd {self.qtd}|Type {self.ordtype}|Price {self.price}|StopPrice {self.priceStop}|LimitPrice {self.priceLimit}")
 
 class CT_PROTO_RESPONSE:
 	ret = 0
@@ -217,11 +229,14 @@ def dumpCmdToLog(dumpCmd : CT_PROTO, log):
 			log(f"\tReturn message: [{dumpCmd.data.retmsg}]")
 
 		elif dumpCmd.cmdtype == CT_TYPE_REQUEST:
-			log(f"\tSymbol: [{dumpCmd.data.symbol}]")
-			log(f"\tSide..: [{dumpCmd.data.side}]")
-			log(f"\tId....: [{dumpCmd.data.ordid}]")
-			log(f"\tType..: [{dumpCmd.data.ordtype}]")
-			log(f"\tPrice.: [{dumpCmd.data.price}]")
+			log(f"\tSymbol....: [{dumpCmd.data.symbol}]")
+			log(f"\tSide......: [{dumpCmd.data.side}]")
+			log(f"\tId........: [{dumpCmd.data.ordid}]")
+			log(f"\tQtd.......: [{dumpCmd.data.qtd}]")
+			log(f"\tType......: [{dumpCmd.data.ordtype}]")
+			log(f"\tPrice.....: [{dumpCmd.data.price}]")
+			log(f"\tStopPrice.: [{dumpCmd.data.priceStop}]")
+			log(f"\tLimitPrice: [{dumpCmd.data.priceLimit}]")
 
 		else:
 			log("Unknow data structure for this cmd type.")

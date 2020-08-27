@@ -8,6 +8,7 @@
 #from textwrap import fill
 #import configparser
 import logging
+import socket
 
 import PySimpleGUI as sg
 from binance.client import Client
@@ -18,42 +19,57 @@ import BinanceCTOrder
 import BinanceCTProto
 import BinanceCTUtil
 
-copytradeEnable = True
-def setCopyTradeEnable(n : bool = True):
-	copytradeEnable = n
+class GUIUtilDefines:
+	srvSendAddress = ""
+	srvSendPort    = 0
+	meName         = ""
+	copytradeEnable = True
 
-srvSendAddress = ""
-srvSendPort    = 0
-meName         = ""
+GUIUtilcfg = GUIUtilDefines()
+
+def setCopyTradeEnable(n : bool = True):
+	global GUIUtilcfg
+
+	GUIUtilcfg.copytradeEnable = n
+
 def setSrvSendInformation(address : str = "", port : int = 0, me : str = ""):
-	srvSendAddress = address
-	srvSendPort    = port
-	meName         = me
+	global GUIUtilcfg
+
+	GUIUtilcfg.srvSendAddress = address
+	GUIUtilcfg.srvSendPort    = port
+	GUIUtilcfg.meName         = me
 
 def sendOrderToSrvSend(symb : str = "",      side : str = "",
                        qtd : str = "",       price : str = "",
                        priceStop : str = "", priceLimit : str = "",
                        typeOrd : str = "",   orderCTId : str = "")->[bool, str]:
+	global GUIUtilcfg
 
-	orderToSendData = BinanceCTProto.CT_PROTO_COPYTRADE_DATA(_symbol = symb, _side = side,
-	                                                         _ordid = orderCTId, _ordtype = typeOrd,
-	                                                         _price = price)
+	orderToSendData = BinanceCTProto.CT_PROTO_COPYTRADE_DATA(_symbol     = symb,
+	                                                         _side       = side,
+	                                                         _qtd        = qtd,
+	                                                         _ordid      = orderCTId,
+	                                                         _ordtype    = typeOrd,
+	                                                         _price      = price,
+	                                                         _priceStop  = priceStop,
+	                                                         _priceLimit = priceLimit)
 
 	orderToSend = BinanceCTProto.CT_PROTO(_cmd            = BinanceCTProto.CT_CMD_COPYTRADE,
-	                                      _fromto_from    = meName,
+	                                      _fromto_from    = GUIUtilcfg.meName,
 	                                      _fromto_to      = "SrvSend",
 	                                      _timestamp      = BinanceCTUtil.getTimeStamp(),
 	                                      _cmdtype        = BinanceCTProto.CT_TYPE_REQUEST,
 	                                      _resp_timestamp = "",
 	                                      _data           = orderToSendData)
 
-	ret, msgret = orderToSend.formatToNet()
+	ret, msg = orderToSend.formatToNet()
 	if ret == False:
-		return([False, msgret])
+		return([False, msg])
 
 	con = envelop_sendRecv.connection()
 
-	ret, retmsg = con.connectToServer(srvSendAddress, srvSendPort, socket.AF_INET, socket.SOCK_STREAM)
+	logging.debug(f"Connecting to SrvSend: {GUIUtilcfg.srvSendAddress} {GUIUtilcfg.srvSendPort}")
+	ret, retmsg = con.connectToServer(GUIUtilcfg.srvSendAddress, GUIUtilcfg.srvSendPort, socket.AF_INET, socket.SOCK_STREAM)
 	if ret == False:
 		return([False, f"Connect to server error: {retmsg}"])
 
@@ -174,6 +190,7 @@ def BS_MarginStopLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->
 				logging.info(f'{windowTitle} - CANCELLED!')
 				continue
 
+			'''
 			ret, retMsg, orderId = BinanceCTOrder.orderMargin(client,
 			                             logging.info,
 			                             symbOrd = valuesMSL['-SYMBOL-'],
@@ -183,6 +200,11 @@ def BS_MarginStopLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->
 			                             sideOrd = clientSide,
 			                             typeOrd = "TAKE_PROFIT_LIMIT",
 			                             limit = 0.0 )
+			'''
+			ret = True
+			retMsg = ""
+			orderId="987654321"
+
 			if ret == False:
 				sg.popup('ERRO! Order didnt post!')
 
@@ -193,10 +215,10 @@ def BS_MarginStopLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->
 				return([False, f"Erro posting order {retMsg}!"])
 
 			if valuesMSL['CB_COPYTRADE'] == True:
-				ret, retmsg = sendOrderToSrvSend(symb = symbOrd,      side = sideOrd,
-				                                 qtd = qtdOrd,        price = prcOrd,
-				                                 priceStop = prcStop, priceLimit = limit,
-				                                 typeOrd = typeOrd,   orderCTId = orderId)
+				ret, retmsg = sendOrderToSrvSend(symb = valuesMSL['-SYMBOL-'],      side = clientSide,
+				                                 qtd = valuesMSL['-QTD-'],        price = "0.0",
+				                                 priceStop = valuesMSL['-LIMIT PRICE-'], priceLimit = "0.0",
+				                                 typeOrd = "TAKE_PROFIT_LIMIT",   orderCTId = orderId)
 				if ret == False:
 					logging.warning(f"The Order ID could not be sent to SrvSend [{orderId}] [{retmsg}]!")
 
