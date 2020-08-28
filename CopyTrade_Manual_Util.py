@@ -32,6 +32,12 @@ def setCopyTradeEnable(n : bool = True):
 
 	GUIUtilcfg.copytradeEnable = n
 
+def getCopyTradeEnable():
+	global GUIUtilcfg
+
+	return(GUIUtilcfg.copytradeEnable)
+
+
 def setSrvSendInformation(address : str = "", port : int = 0, me : str = ""):
 	global GUIUtilcfg
 
@@ -174,7 +180,7 @@ def BS_MarginStopLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->
 		[sg.Text('Qtd: ', background_color = bgcolor), sg.InputText(key = '-QTD-')],
 		[sg.Text('Stop Price: ', background_color = bgcolor), sg.InputText(key = '-STOP PRICE-')],
 		[sg.Text('Limit Price: ', background_color = bgcolor), sg.InputText(key = '-LIMIT PRICE-')],
-		[sg.Checkbox('Send to CopyTrade', key='CB_COPYTRADE', default=True, disabled=not copytradeEnable)],
+		[sg.Checkbox('Send to CopyTrade', key='CB_COPYTRADE', default=True, disabled=not getCopyTradeEnable())],
 		[sg.Button('SEND!'), sg.Button('CANCEL')],
 	]
 
@@ -190,22 +196,18 @@ def BS_MarginStopLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->
 				logging.info(f'{windowTitle} - CANCELLED!')
 				continue
 
-			'''
 			ret, retMsg, orderId = BinanceCTOrder.orderMargin(client,
-			                             logging.info,
-			                             symbOrd = valuesMSL['-SYMBOL-'],
-			                             qtdOrd = valuesMSL['-QTD-'],
-			                             prcOrd = valuesMSL['-STOP PRICE-'],
-			                             prcStop = valuesMSL['-LIMIT PRICE-'],
-			                             sideOrd = clientSide,
-			                             typeOrd = "TAKE_PROFIT_LIMIT",
-			                             limit = 0.0 )
-			'''
-			ret = True
-			retMsg = ""
-			orderId="987654321"
+			                                                  logging.info,
+			                                                  symbOrd = valuesMSL['-SYMBOL-'],
+			                                                  qtdOrd = valuesMSL['-QTD-'],
+			                                                  prcOrd = valuesMSL['-STOP PRICE-'],
+			                                                  prcStop = valuesMSL['-LIMIT PRICE-'],
+			                                                  sideOrd = clientSide,
+			                                                  typeOrd = "TAKE_PROFIT_LIMIT",
+			                                                  limit = 0.0 )
 
 			if ret == False:
+				logging.info(f"Erro posting order! {msgRet}")
 				sg.popup('ERRO! Order didnt post!')
 
 				windowMSL.close()
@@ -215,14 +217,19 @@ def BS_MarginStopLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->
 				return([False, f"Erro posting order {retMsg}!"])
 
 			if valuesMSL['CB_COPYTRADE'] == True:
-				ret, retmsg = sendOrderToSrvSend(symb = valuesMSL['-SYMBOL-'],      side = clientSide,
-				                                 qtd = valuesMSL['-QTD-'],        price = "0.0",
-				                                 priceStop = valuesMSL['-LIMIT PRICE-'], priceLimit = "0.0",
-				                                 typeOrd = "TAKE_PROFIT_LIMIT",   orderCTId = orderId)
+				ret, retmsg = sendOrderToSrvSend(symb = valuesMSL['-SYMBOL-'],
+				                                 side = clientSide,
+				                                 qtd = valuesMSL['-QTD-'],
+				                                 price = "0.0",
+				                                 priceStop = valuesMSL['-LIMIT PRICE-'],
+				                                 priceLimit = "0.0",
+				                                 typeOrd = "TAKE_PROFIT_LIMIT",
+				                                 orderCTId = orderId)
 				if ret == False:
 					logging.warning(f"The Order ID could not be sent to SrvSend [{orderId}] [{retmsg}]!")
 
 			logging.info(f'{windowTitle} - CONFIRMED!')
+			break
 
 		elif eventMSL == sg.WIN_CLOSED or eventMSL == 'CANCEL':
 			logging.info(f'{windowTitle} - CANCELLED!')
@@ -238,7 +245,7 @@ def BS_MarginMarket(client, bgcolor = '', windowTitle = '', clientSide = 0)->[bo
 	layoutMM = [
 		[sg.Text('Symbol: ', background_color = bgcolor), sg.InputText(key = '-SYMBOL-')],
 		[sg.Text('Qtd: ', background_color = bgcolor), sg.InputText(key = '-QTD-')],
-		[sg.Checkbox('Send to CopyTrade', key='CB_COPYTRADE', default=True, disabled=not copytradeEnable)],
+		[sg.Checkbox('Send to CopyTrade', key='CB_COPYTRADE', default=True, disabled=not getCopyTradeEnable())],
 		[sg.Button('SEND!'), sg.Button('CANCEL')],
 	]
 
@@ -255,12 +262,13 @@ def BS_MarginMarket(client, bgcolor = '', windowTitle = '', clientSide = 0)->[bo
 				continue
 
 			ret, msgRet, orderId = BinanceCTOrder.orderMargin(client,
-			                             logging.info,
-			                             symbOrd = valuesMM['-SYMBOL-'],
-			                             qtdOrd  = valuesMM['-QTD-'],
-			                             sideOrd = clientSide,
-			                             typeOrd = Client.ORDER_TYPE_MARKET)
+			                                                  logging.info,
+			                                                  symbOrd = valuesMM['-SYMBOL-'],
+			                                                  qtdOrd  = valuesMM['-QTD-'],
+			                                                  sideOrd = clientSide,
+			                                                  typeOrd = Client.ORDER_TYPE_MARKET)
 			if ret == False:
+				logging.info(f"Erro posting order! {msgRet}")
 				sg.popup('ERRO! Order didnt post!')
 
 				windowMM.close()
@@ -270,14 +278,16 @@ def BS_MarginMarket(client, bgcolor = '', windowTitle = '', clientSide = 0)->[bo
 				return([False, f"Erro placing order! {msgRet}"])
 
 			if valuesMM['CB_COPYTRADE'] == True:
-				ret, retmsg = sendOrderToSrvSend(symb = symbOrd,      side = sideOrd,
-				                                 qtd = qtdOrd,        price = prcOrd,
-				                                 priceStop = prcStop, priceLimit = limit,
-				                                 typeOrd = typeOrd,   orderCTId = orderId)
+				ret, retmsg = sendOrderToSrvSend(symb = valuesMM['-SYMBOL-'],
+				                                 side = clientSide,
+				                                 qtd = valuesMM['-QTD-'],
+				                                 typeOrd = Client.ORDER_TYPE_MARKET,
+				                                 orderCTId = clientSide)
 				if ret == False:
 					logging.warning(f"The Order ID could not be sent to SrvSend [{orderId}] [{retmsg}]!")
 
 			logging.info(f'{windowTitle} - CONFIRMED!')
+			break
 
 		elif eventMM == sg.WIN_CLOSED or eventMM == 'CANCEL':
 			logging.info(f'{windowTitle} - CANCELLED!')
@@ -295,7 +305,7 @@ def BS_MarginLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->[boo
 		[sg.Text('Symbol: ', background_color = bgcolor), sg.InputText(key = '-SYMBOL-')],
 		[sg.Text('Qtd: ', background_color = bgcolor), sg.InputText(key = '-QTD-')],
 		[sg.Text('Price: ', background_color = bgcolor), sg.InputText(key = '-PRICE-')],
-		[sg.Checkbox('Send to CopyTrade', key='CB_COPYTRADE', default=True, disabled=not copytradeEnable)],
+		[sg.Checkbox('Send to CopyTrade', key='CB_COPYTRADE', default=True, disabled=not getCopyTradeEnable())],
 		[sg.Button('SEND!'), sg.Button('CANCEL')],
 	]
 
@@ -312,14 +322,15 @@ def BS_MarginLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->[boo
 				continue
 
 			ret, msgRet, orderId = BinanceCTOrder.orderMargin(client,
-			                  logging.info,
-			                  symbOrd = valuesML['-SYMBOL-'],
-			                  qtdOrd  = valuesML['-QTD-'],
-			                  prcOrd  = valuesML['-PRICE-'],
-			                  sideOrd = clientSide,
-			                  typeOrd = Client.ORDER_TYPE_LIMIT)
+			                                                  logging.info,
+			                                                  symbOrd = valuesML['-SYMBOL-'],
+			                                                  qtdOrd  = valuesML['-QTD-'],
+			                                                  prcOrd  = valuesML['-PRICE-'],
+			                                                  sideOrd = clientSide,
+			                                                  typeOrd = Client.ORDER_TYPE_LIMIT)
 
 			if ret == False:
+				logging.info(f"Erro posting order! {msgRet}")
 				sg.popup('ERRO! Order didnt post!')
 
 				windowML.close()
@@ -329,14 +340,17 @@ def BS_MarginLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->[boo
 				return([False, f"Eror posting order! {msgRet}"])
 
 			if valuesML['CB_COPYTRADE'] == True:
-				ret, retmsg = sendOrderToSrvSend(symb = symbOrd,      side = sideOrd,
-				                                 qtd = qtdOrd,        price = prcOrd,
-				                                 priceStop = prcStop, priceLimit = limit,
-				                                 typeOrd = typeOrd,   orderCTId = orderId)
+				ret, retmsg = sendOrderToSrvSend(symb = valuesML['-SYMBOL-'],
+				                                 side = clientSide,
+				                                 qtd = valuesML['-QTD-'],
+				                                 price = valuesML['-PRICE-'],
+				                                 typeOrd = Client.ORDER_TYPE_LIMIT,
+				                                 orderCTId = orderId)
 				if ret == False:
 					logging.warning(f"The Order ID could not be sent to SrvSend [{orderId}] [{retmsg}]!")
 
 			logging.info(f'{windowTitle} - CONFIRMED!')
+			break
 
 		elif eventML == sg.WIN_CLOSED or eventML == 'CANCEL':
 			logging.info(f'{windowTitle} - CANCELLED!')
@@ -354,7 +368,7 @@ def BS_SpotStopLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->[b
 		[sg.Text('Qtd: ', background_color = bgcolor), sg.InputText(key = '-QTD-')],
 		[sg.Text('Stop Price: ', background_color = bgcolor), sg.InputText(key = '-STOP PRICE-')],
 		[sg.Text('Limit Price: ', background_color = bgcolor), sg.InputText(key = '-LIMIT PRICE-')],
-		[sg.Checkbox('Send to CopyTrade', key='CB_COPYTRADE', default=True, disabled=not copytradeEnable)],
+		[sg.Checkbox('Send to CopyTrade', key='CB_COPYTRADE', default=True, disabled=not getCopyTradeEnable())],
 		[sg.Button('SEND!'), sg.Button('CANCEL')],
 	]
 
@@ -371,14 +385,15 @@ def BS_SpotStopLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->[b
 				continue
 
 			ret, msgRet = BinanceCTOrder.orderSpotLimit(client,
-			                                logging.info,
-			                                symbOrd = valuesSSL['-SYMBOL-'],
-			                                qtdOrd = valuesSSL['-QTD-'],
-			                                prcStopOrd = valuesSSL['-STOP PRICE-'],
-			                                prcStopLimitOrd = valuesSSL['-LIMIT PRICE-'],
-			                                sideOrd = clientSide)
+			                                            logging.info,
+			                                            symbOrd = valuesSSL['-SYMBOL-'],
+			                                            qtdOrd = valuesSSL['-QTD-'],
+			                                            prcStopOrd = valuesSSL['-STOP PRICE-'],
+			                                            prcStopLimitOrd = valuesSSL['-LIMIT PRICE-'],
+			                                            sideOrd = clientSide)
 
 			if ret == False:
+				logging.info(f"Erro posting order! {msgRet}")
 				sg.popup('ERRO! Order didnt post!')
 
 				windowSSL.close()
@@ -388,14 +403,19 @@ def BS_SpotStopLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->[b
 				return([False, f"Eror posting order! {msgRet}"])
 
 			if valuesSSL['CB_COPYTRADE'] == True:
-				ret, retmsg = sendOrderToSrvSend(symb = symbOrd,      side = sideOrd,
-				                                 qtd = qtdOrd,        price = prcOrd,
-				                                 priceStop = prcStop, priceLimit = limit,
-				                                 typeOrd = typeOrd,   orderCTId = orderId)
+				ret, retmsg = sendOrderToSrvSend(symb = valuesSSL['-SYMBOL-'],
+				                                 side = clientSide,
+				                                 qtd = valuesSSL['-QTD-'],
+				                                 price = "",
+				                                 priceStop = valuesSSL['-STOP PRICE-'],
+				                                 priceLimit = valuesSSL['-LIMIT PRICE-'],
+				                                 typeOrd = ">>>SPOT LIMIT",
+				                                 orderCTId = orderId)
 				if ret == False:
 					logging.warning(f"The Order ID could not be sent to SrvSend [{orderId}] [{retmsg}]!")
 
 			logging.info(f'{windowTitle} - CONFIRMED!')
+			break
 
 		elif eventSSL == sg.WIN_CLOSED or eventSSL == 'CANCEL':
 			logging.info(f'{windowTitle} - CANCELLED!')
@@ -411,7 +431,7 @@ def BS_SpotMarket(client, bgcolor = '', windowTitle = '', clientSide = 0)->[bool
 	layoutSM = [
 		[sg.Text('Symbol: ', background_color = bgcolor), sg.InputText(key = '-SYMBOL-')],
 		[sg.Text('Qtd: ', background_color = bgcolor), sg.InputText(key = '-QTD-')],
-		[sg.Checkbox('Send to CopyTrade', key='CB_COPYTRADE', default=True, disabled=not copytradeEnable)],
+		[sg.Checkbox('Send to CopyTrade', key='CB_COPYTRADE', default=True, disabled=not getCopyTradeEnable())],
 		[sg.Button('SEND!'), sg.Button('CANCEL')],
 	]
 
@@ -428,12 +448,13 @@ def BS_SpotMarket(client, bgcolor = '', windowTitle = '', clientSide = 0)->[bool
 				continue
 
 			ret, msgRet, orderId = BinanceCTOrder.orderSpot(client,
-			                logging.info,
-			                symbOrd = valuesSM['-SYMBOL-'],
-			                qtdOrd  = valuesSM['-QTD-'],
-			                sideOrd = clientSide,
-			                typeOrd = Client.ORDER_TYPE_MARKET)
+			                                                logging.info,
+			                                                symbOrd = valuesSM['-SYMBOL-'],
+			                                                qtdOrd  = valuesSM['-QTD-'],
+			                                                sideOrd = clientSide,
+			                                                typeOrd = Client.ORDER_TYPE_MARKET)
 			if ret == False:
+				logging.info(f"Erro posting order! {msgRet}")
 				sg.popup('ERRO! Order didnt post!')
 
 				windowSM.close()
@@ -443,14 +464,16 @@ def BS_SpotMarket(client, bgcolor = '', windowTitle = '', clientSide = 0)->[bool
 				return([False, f"Erro posting order! {msgRet}"])
 
 			if valuesSM['CB_COPYTRADE'] == True:
-				ret, retmsg = sendOrderToSrvSend(symb = symbOrd,      side = sideOrd,
-				                                 qtd = qtdOrd,        price = prcOrd,
-				                                 priceStop = prcStop, priceLimit = limit,
-				                                 typeOrd = typeOrd,   orderCTId = orderId)
+				ret, retmsg = sendOrderToSrvSend(symb = valuesSM['-SYMBOL-'],
+				                                 side = clientSide,
+				                                 qtd = valuesSM['-QTD-'],
+				                                 typeOrd = Client.ORDER_TYPE_MARKET,
+				                                 orderCTId = orderId)
 				if ret == False:
 					logging.warning(f"The Order ID could not be sent to SrvSend [{orderId}] [{retmsg}]!")
 
 			logging.info(f'{windowTitle} - CONFIRMED!')
+			break
 
 		elif eventSM == sg.WIN_CLOSED or eventSM == 'CANCEL':
 			logging.info(f'{windowTitle} - CANCELLED!')
@@ -468,7 +491,7 @@ def BS_SpotLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->[bool,
 		[sg.Text('Symbol: ', background_color = bgcolor), sg.InputText(key = '-SYMBOL-')],
 		[sg.Text('Qtd: ', background_color = bgcolor), sg.InputText(key = '-QTD-')],
 		[sg.Text('Price: ', background_color = bgcolor), sg.InputText(key = '-PRICE-')],
-		[sg.Checkbox('Send to CopyTrade', key='CB_COPYTRADE', default=True, disabled=not copytradeEnable)],
+		[sg.Checkbox('Send to CopyTrade', key='CB_COPYTRADE', default=True, disabled=not getCopyTradeEnable())],
 		[sg.Button('SEND!'), sg.Button('CANCEL')],
 	]
 
@@ -485,13 +508,14 @@ def BS_SpotLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->[bool,
 				continue
 
 			ret, msgRet, orderId = BinanceCTOrder.orderSpot(client,
-			                logging.info,
-			                symbOrd = valuesSL['-SYMBOL-'],
-			                qtdOrd  = valuesSL['-QTD-'],
-			                prcOrd  = valuesSL['-PRICE-'],
-			                sideOrd = clientSide,
-			                typeOrd = Client.ORDER_TYPE_LIMIT)
+			                                                logging.info,
+			                                                symbOrd = valuesSL['-SYMBOL-'],
+			                                                qtdOrd  = valuesSL['-QTD-'],
+			                                                prcOrd  = valuesSL['-PRICE-'],
+			                                                sideOrd = clientSide,
+			                                                typeOrd = Client.ORDER_TYPE_LIMIT)
 			if ret == False:
+				logging.info(f"Erro posting order! {msgRet}")
 				sg.popup('ERRO! Order didnt post!')
 
 				windowSL.close()
@@ -501,14 +525,17 @@ def BS_SpotLimit(client, bgcolor = '', windowTitle = '', clientSide = 0)->[bool,
 				return([False, f"Erro posting order! {msgRet}"])
 
 			if valuesSL['CB_COPYTRADE'] == True:
-				ret, retmsg = sendOrderToSrvSend(symb = symbOrd,      side = sideOrd,
-				                                 qtd = qtdOrd,        price = prcOrd,
-				                                 priceStop = prcStop, priceLimit = limit,
-				                                 typeOrd = typeOrd,   orderCTId = orderId)
+				ret, retmsg = sendOrderToSrvSend(symb = valuesSL['-SYMBOL-'],
+				                                 side = clientSide,
+				                                 qtd = valuesSL['-QTD-'],
+				                                 price = valuesSL['-PRICE-'],
+				                                 typeOrd = Client.ORDER_TYPE_LIMIT,
+				                                 orderCTId = orderId)
 				if ret == False:
 					logging.warning(f"The Order ID could not be sent to SrvSend [{orderId}] [{retmsg}]!")
 
 			logging.info(f'{windowTitle} - CONFIRMED!')
+			break
 
 		elif eventSL == sg.WIN_CLOSED or eventSL == 'CANCEL':
 			logging.info(f'{windowTitle} - CANCELLED!')

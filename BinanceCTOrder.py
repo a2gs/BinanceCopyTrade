@@ -11,8 +11,8 @@ from binance.exceptions import BinanceAPIException, BinanceWithdrawException, Bi
 """
 testOrder = False
 """
-#LOCK = True
-LOCK = False
+LOCK = True
+#LOCK = False
 
 """
 def setTestOrder(o: bool):
@@ -182,7 +182,8 @@ def orderSpot(client, log = None, symbOrd = '', qtdOrd = 0, prcOrd = 0.0, sideOr
 	# TESTING
 	global LOCK
 	if LOCK == True:
-		return([False, "Programmed flag order lock ON!", ""])
+#		return([False, "Programmed flag order lock ON!", ""])
+		return([True, ">>>>>>>>>>>>>>>>>>>Programmed flag order lock ON!", "987654321"])
 
 	try:
 		order = client.create_order(symbol           = symbOrd,

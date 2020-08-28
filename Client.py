@@ -42,14 +42,13 @@ def safeExit(num : int = 0, msg : str = ""):
 
 def execCmdCopytradeReq(recv : BinanceCTProto.CT_PROTO = None)->[bool, str, BinanceCTProto.CT_PROTO]: 
 
-	sendForward = BinanceCTProto.CT_PROTO(
-	             _cmd            = BinanceCTProto.CT_CMD_COPYTRADE,
-	             _fromto_from    = recv.fromto['from'],
-	             _fromto_to      = recv.fromto['to'],
-	             _timestamp      = recv.timestamp, # CopyTrade timestamp
-	             _cmdtype        = recv.cmdtype,
-	             _resp_timestamp = recv.resp_timestamp, # should be empty (a request..)
-	             _data           = recv.data)
+	sendForward = BinanceCTProto.CT_PROTO(_cmd            = BinanceCTProto.CT_CMD_COPYTRADE,
+	                                      _fromto_from    = recv.fromto['from'],
+	                                      _fromto_to      = recv.fromto['to'],
+	                                      _timestamp      = recv.timestamp, # CopyTrade timestamp
+	                                      _cmdtype        = recv.cmdtype,
+	                                      _resp_timestamp = recv.resp_timestamp, # should be empty (a request..)
+	                                      _data           = recv.data)
 
 	BinanceCTProto.dumpCmdToLog(sendForward, logging.info)
 
