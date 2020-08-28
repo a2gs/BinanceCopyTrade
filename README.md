@@ -1,7 +1,7 @@
 # BinanceCopyTrade
 A copy trading tool for Binance
-![BinanceCT](https://i.imgur.com/5Up2ApR.jpg)
-<br>
+![BinanceCT](https://i.imgur.com/5Up2ApR.jpg)<br>
+![BinanceCTSequence](https://i.imgur.com/IEdis5s.jpg)<br>
 Copy Trade Manual:<br>
 ![binancestatusgui1](https://i.imgur.com/kKMHVDY.jpg)<br>
 ![binancestatusgui2](https://i.imgur.com/uTfyiXe.jpg)<br>
